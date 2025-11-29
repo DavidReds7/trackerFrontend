@@ -1,0 +1,28 @@
+:root {
+  --admin-layout-gap: 16px;
+}
+
+.admin-layout {
+  display: grid;
+  grid-template-columns: repeat(12, minmax(0, 1fr));
+  column-gap: var(--admin-layout-gap);
+  row-gap: 28px;
+  padding: 0 clamp(24px, 4vw, 160px);
+}
+
+.admin-layout__inner {
+  grid-column: 1 / -1;
+  width: 100%;
+}
+
+.admin-layout__section {
+  grid-column: 1 / -1;
+}
+
+@media (max-width: 900px) {
+  .admin-layout {
+    row-gap: 20px;
+    padding: 0 24px;
+  }
+}
+

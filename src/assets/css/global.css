@@ -1,0 +1,86 @@
+:root {
+  font-family: 'Inter', system-ui, sans-serif;
+  color: #111b2f;
+  background-color: #f5f7fb;
+  --primary: #0052cc;
+  --accent: #00bfa6;
+  --light: #f5f7fb;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  background: linear-gradient(180deg, #f5f7fb 0%, #e1e6ff 100%);
+}
+
+body.auth-body {
+  background: #0b3428;
+}
+
+body.admin-body {
+  background: linear-gradient(180deg, #f6f1e7 0%, #efe6d9 55%, #f6f1e7 100%);
+}
+
+main {
+  padding: 2rem 1.5rem;
+}
+
+button {
+  border: none;
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.app-shell {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.app-content {
+  flex: 1;
+  padding: 2rem;
+  max-width: 1200px;
+  width: 100%;
+  margin: 0 auto;
+}
+
+.global-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1rem 1.5rem;
+  background: rgba(255, 255, 255, 0.8);
+  border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+  position: sticky;
+  top: 0;
+  backdrop-filter: blur(6px);
+  z-index: 10;
+}
+
+.global-header .brand {
+  display: flex;
+  gap: 0.75rem;
+  align-items: center;
+}
+
+.global-header nav {
+  display: flex;
+  gap: 1rem;
+}
+
+.global-header a {
+  color: var(--primary);
+  text-decoration: none;
+  font-weight: 600;
+}
+
+.page {
+  transition: opacity 0.3s ease;
+  min-height: 100vh;
+  width: 100%;
+}
