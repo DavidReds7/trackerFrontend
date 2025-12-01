@@ -1,6 +1,7 @@
 import React, { useCallback, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import AuthScene from '../components/AuthScene';
+import { createUser } from '../../../api/userService';
 
 const RegisterPage = () => {
   const [form, setForm] = useState({
@@ -11,9 +12,11 @@ const RegisterPage = () => {
     password: '',
     location: ''
   });
+
   const [status, setStatus] = useState(null);
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
+
   const circlePosition = 'left';
   const panelState = 'idle';
 
@@ -60,10 +63,7 @@ const RegisterPage = () => {
     <AuthScene title="Crear cuenta" description="" circlePosition={circlePosition} panelState={panelState}>
       <form className="auth-form" onSubmit={handleSubmit}>
         <label className="auth-form__field">
-          <span>
-            Nombre
-            <strong aria-hidden="true">*</strong>
-          </span>
+          <span>Nombre <strong>*</strong></span>
           <input
             type="text"
             name="firstName"
@@ -74,10 +74,7 @@ const RegisterPage = () => {
           />
         </label>
         <label className="auth-form__field">
-          <span>
-            Apellido paterno
-            <strong aria-hidden="true">*</strong>
-          </span>
+          <span>Apellido paterno <strong>*</strong></span>
           <input
             type="text"
             name="paternalLastName"
@@ -94,14 +91,11 @@ const RegisterPage = () => {
             name="maternalLastName"
             value={form.maternalLastName}
             onChange={handleChange}
-            placeholder="Apellido materno"
+            placeholder="Apellido materno (opcional)"
           />
         </label>
         <label className="auth-form__field">
-          <span>
-            Correo electrónico
-            <strong aria-hidden="true">*</strong>
-          </span>
+          <span>Correo electrónico <strong>*</strong></span>
           <input
             type="email"
             name="email"
@@ -112,10 +106,7 @@ const RegisterPage = () => {
           />
         </label>
         <label className="auth-form__field">
-          <span>
-            Contraseña
-            <strong aria-hidden="true">*</strong>
-          </span>
+          <span>Contraseña <strong>*</strong></span>
           <input
             type="password"
             name="password"
@@ -187,4 +178,3 @@ const RegisterPage = () => {
 };
 
 export default RegisterPage;
-

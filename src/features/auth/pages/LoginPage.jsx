@@ -83,7 +83,7 @@ const LoginPage = () => {
       title="Iniciar sesión"
       description=""
       circlePosition={circlePosition}
-      panelState="idle"
+      panelState
     >
       <div className="auth-panel__intro">
         <span>¿Nuevo usuario?</span>
