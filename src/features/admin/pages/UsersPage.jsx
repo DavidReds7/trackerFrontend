@@ -5,6 +5,7 @@ import '@/features/admin/pages/users.css';
 import '@/assets/css/auth.css';
 import { useAuth } from '@/context/AuthContext';
 import AdminHeader from '../components/AdminHeader';
+import { getUserById, updateUser } from '@/api/adminService';
 
 const UsersPage = () => {
   const { user, token } = useAuth();
@@ -22,6 +23,20 @@ const UsersPage = () => {
   });
   const [formError, setFormError] = useState(null);
   const [formSuccess, setFormSuccess] = useState(null);
+  const [showSuccess, setShowSuccess] = useState(false);
+  const [pendingToggle, setPendingToggle] = useState(null);
+  const [selectedUser, setSelectedUser] = useState(null);
+  const [userDetails, setUserDetails] = useState(null);
+  const [loadingDetails, setLoadingDetails] = useState(false);
+  const [editingUser, setEditingUser] = useState(null);
+  const [editFormData, setEditFormData] = useState({
+    email: '',
+    nombre: '',
+    apellidoPaterno: '',
+    apellidoMaterno: ''
+  });
+  const [editError, setEditError] = useState(null);
+  const [pendingEdit, setPendingEdit] = useState(null);
 
   const BASE_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:8080/api';
 
@@ -114,6 +129,7 @@ const UsersPage = () => {
       }
 
       const apiResp = await response.json();
+      // Indicar éxito y limpiar formulario
       setFormSuccess('Usuario creado exitosamente');
       setFormData({
         email: '',
@@ -123,7 +139,10 @@ const UsersPage = () => {
         apellidoMaterno: ''
       });
       setShowForm(false);
-      setTimeout(() => fetchUsers(), 500);
+      // Mostrar modal de éxito
+      setShowSuccess(true);
+      // Actualizar lista inmediatamente
+      fetchUsers();
     } catch (err) {
       setFormError(err.message || 'Error al crear usuario');
     }
@@ -153,6 +172,61 @@ const UsersPage = () => {
     }
   };
 
+  const handleViewUser = async (userId) => {
+    setLoadingDetails(true);
+    try {
+      const apiResp = await getUserById(userId, token);
+      if (apiResp && apiResp.data) {
+        setUserDetails(apiResp.data);
+        setSelectedUser(userId);
+      }
+    } catch (err) {
+      console.error('Error al obtener detalles del usuario:', err);
+    } finally {
+      setLoadingDetails(false);
+    }
+  };
+
+  const handleEditUser = (user) => {
+    setEditingUser(user.id);
+    setEditFormData({
+      email: user.email,
+      nombre: user.nombre,
+      apellidoPaterno: user.apellidoPaterno,
+      apellidoMaterno: user.apellidoMaterno || ''
+    });
+    setEditError(null);
+  };
+
+  const handleEditFormChange = (e) => {
+    const { name, value } = e.target;
+    setEditFormData((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const handleConfirmEdit = async () => {
+    try {
+      const payload = {
+        email: editFormData.email,
+        nombre: editFormData.nombre,
+        apellidoPaterno: editFormData.apellidoPaterno,
+        apellidoMaterno: editFormData.apellidoMaterno
+      };
+
+      await updateUser(editingUser, payload, token);
+      setEditingUser(null);
+      setPendingEdit(null);
+      setEditFormData({
+        email: '',
+        nombre: '',
+        apellidoPaterno: '',
+        apellidoMaterno: ''
+      });
+      fetchUsers();
+    } catch (err) {
+      setEditError(err.message || 'Error al actualizar usuario');
+    }
+  };
+
   const getRolBadgeClass = (rol) => {
     return rol === 'ADMINISTRADOR' ? 'role-badge--admin' : 'role-badge--empleado';
   };
@@ -169,7 +243,7 @@ const UsersPage = () => {
                 className="btn-add-user"
                 onClick={() => setShowForm(!showForm)}
               >
-                {showForm ? 'Cancelar' : 'Agregar usuario'}
+                Agregar usuario
               </button>
               <div className="admin-panel__controls">
                 <input
@@ -266,7 +340,7 @@ const UsersPage = () => {
                           Cancelar
                         </button>
                         <button type="submit" className="btn-add-user">
-                          Crear Usuario
+                          Agregar usuario
                         </button>
                       </div>
                     </form>
@@ -274,6 +348,21 @@ const UsersPage = () => {
                 </div>
               </div>
             )}
+
+                {showSuccess && (
+                  <div className="success-overlay" role="dialog" aria-modal="true" aria-label="Usuario creado">
+                    <div className="success-modal">
+                      <button className="success-close" aria-label="Cerrar" onClick={() => setShowSuccess(false)}>×</button>
+                      <div className="success-body">
+                        <h2>¡Usuario creado exitosamente!</h2>
+                        <p className="sr-only">Creación de usuario completada</p>
+                        <div className="success-actions">
+                          <button className="btn-add-user" onClick={() => setShowSuccess(false)}>Aceptar</button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
 
             {loading ? (
               <p className="loading-message">Cargando usuarios...</p>
@@ -305,6 +394,7 @@ const UsersPage = () => {
                           className="action-btn action-btn--view"
                           title="Ver"
                           aria-label="Ver usuario"
+                          onClick={() => handleViewUser(u.id)}
                         >
                           <FiEye />
                         </button>
@@ -313,13 +403,14 @@ const UsersPage = () => {
                           className="action-btn action-btn--edit"
                           title="Editar"
                           aria-label="Editar usuario"
+                          onClick={() => handleEditUser(u)}
                         >
                           <FiEdit />
                         </button>
                         <button
                           type="button"
                           className={`toggle-switch ${u.activo ? 'active' : ''}`}
-                          onClick={() => handleToggleActive(u.id, u.activo)}
+                          onClick={() => setPendingToggle({ id: u.id, name: `${u.nombre} ${u.apellidoPaterno}`, currentStatus: u.activo })}
                           title={u.activo ? 'Desactivar' : 'Activar'}
                           aria-label={u.activo ? 'Desactivar usuario' : 'Activar usuario'}
                         />
@@ -330,6 +421,164 @@ const UsersPage = () => {
               </table>
             ) : (
               <p className="no-users-message">No hay usuarios para mostrar</p>
+            )}
+
+            {/* Confirmation modal for activate/deactivate */}
+            {pendingToggle && (
+              <div className="confirm-overlay" role="dialog" aria-modal="true" aria-label="Confirmación">
+                <div className="confirm-modal">
+                  <button className="success-close" aria-label="Cerrar" onClick={() => setPendingToggle(null)}>×</button>
+                  <div className="success-body">
+                    <h2>¿Está seguro de {pendingToggle.currentStatus ? 'desactivar' : 'activar'} a {pendingToggle.name}?</h2>
+                    <div className="success-actions">
+                      <button className="btn-cancel" onClick={() => setPendingToggle(null)}>Regresar</button>
+                      {pendingToggle.currentStatus ? (
+                        <button className="btn-danger" onClick={async () => { await handleToggleActive(pendingToggle.id, pendingToggle.currentStatus); setPendingToggle(null); }}>Desactivar</button>
+                      ) : (
+                        <button className="btn-add-user" onClick={async () => { await handleToggleActive(pendingToggle.id, pendingToggle.currentStatus); setPendingToggle(null); }}>Activar</button>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* User Details Modal */}
+            {selectedUser && userDetails && (
+              <div className="details-overlay" role="dialog" aria-modal="true" aria-label="Información del empleado">
+                <div className="details-modal">
+                  <button className="success-close" aria-label="Cerrar" onClick={() => { setSelectedUser(null); setUserDetails(null); }}>×</button>
+                  <div className="details-content">
+                    <h2>Info empleados</h2>
+                    <div className="info-section">
+                      <h3>Información del empleado:</h3>
+                      <div className="info-grid">
+                        <div className="info-row">
+                          <label>Nombre(s)</label>
+                          <span>{userDetails.nombre}</span>
+                        </div>
+                        <div className="info-row">
+                          <label>Apellido materno</label>
+                          <span>{userDetails.apellidoMaterno || '-'}</span>
+                        </div>
+                        <div className="info-row">
+                          <label>Apellido paterno</label>
+                          <span>{userDetails.apellidoPaterno}</span>
+                        </div>
+                        <div className="info-row">
+                          <label>Correo electrónico</label>
+                          <span>{userDetails.email}</span>
+                        </div>
+                        <div className="info-row">
+                          <label>Rol asignado</label>
+                          <span className={`role-badge ${userDetails.rol === 'ADMINISTRADOR' ? 'role-badge--admin' : 'role-badge--empleado'}`}>
+                            {userDetails.rol === 'ADMINISTRADOR' ? 'Administrador' : 'Empleado'}
+                          </span>
+                        </div>
+                        <div className="info-row">
+                          <label>Estado</label>
+                          <span className={`status-badge ${userDetails.activo ? 'status-active' : 'status-inactive'}`}>
+                            {userDetails.activo ? 'Activo' : 'Inactivo'}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Edit User Modal */}
+            {editingUser && (
+              <div className="modal-overlay" role="dialog" aria-modal="true" aria-label="Editar usuario">
+                <div className="modal">
+                  <header className="modal-header">
+                    <h3>Editar empleado</h3>
+                    <button type="button" className="modal-close" onClick={() => { setEditingUser(null); setPendingEdit(null); setEditError(null); }} aria-label="Cerrar modal">
+                      ×
+                    </button>
+                  </header>
+                  <div className="modal-body">
+                    <form className="auth-form" onSubmit={(e) => { e.preventDefault(); setPendingEdit(editingUser); }}>
+                      <div className="form-row">
+                        <label className="auth-form__field">
+                          <span>Nombre <strong>*</strong></span>
+                          <input
+                            type="text"
+                            name="nombre"
+                            value={editFormData.nombre}
+                            onChange={handleEditFormChange}
+                            placeholder="Nombre"
+                            required
+                          />
+                        </label>
+                        <label className="auth-form__field">
+                          <span>Apellido paterno <strong>*</strong></span>
+                          <input
+                            type="text"
+                            name="apellidoPaterno"
+                            value={editFormData.apellidoPaterno}
+                            onChange={handleEditFormChange}
+                            placeholder="Apellido paterno"
+                            required
+                          />
+                        </label>
+                      </div>
+
+                      <div className="form-row">
+                        <label className="auth-form__field">
+                          <span>Apellido materno</span>
+                          <input
+                            type="text"
+                            name="apellidoMaterno"
+                            value={editFormData.apellidoMaterno}
+                            onChange={handleEditFormChange}
+                            placeholder="Apellido materno (opcional)"
+                          />
+                        </label>
+                        <label className="auth-form__field">
+                          <span>Correo electrónico <strong>*</strong></span>
+                          <input
+                            type="email"
+                            name="email"
+                            value={editFormData.email}
+                            onChange={handleEditFormChange}
+                            placeholder="Correo electrónico"
+                            required
+                          />
+                        </label>
+                      </div>
+
+                      {editError && <p className="form-error">{editError}</p>}
+
+                      <div className="modal-actions">
+                        <button type="button" className="btn-add-user btn-cancel" onClick={() => { setEditingUser(null); setPendingEdit(null); setEditError(null); }}>
+                          Cancelar
+                        </button>
+                        <button type="submit" className="btn-add-user">
+                          Guardar cambios
+                        </button>
+                      </div>
+                    </form>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Confirmation Modal for Edit */}
+            {pendingEdit && (
+              <div className="confirm-overlay" role="dialog" aria-modal="true" aria-label="Confirmación">
+                <div className="confirm-modal">
+                  <button className="success-close" aria-label="Cerrar" onClick={() => setPendingEdit(null)}>×</button>
+                  <div className="success-body">
+                    <h2>¿Está seguro de que desea actualizar los datos del empleado?</h2>
+                    <div className="success-actions">
+                      <button className="btn-cancel" onClick={() => setPendingEdit(null)}>Regresar</button>
+                      <button className="btn-add-user" onClick={handleConfirmEdit}>Confirmar</button>
+                    </div>
+                  </div>
+                </div>
+              </div>
             )}
           </section>
         </div>

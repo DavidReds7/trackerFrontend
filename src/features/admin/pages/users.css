@@ -2,7 +2,6 @@
   display: flex;
   flex-direction: column;
   gap: 1.5rem;
-  /* Top/bottom spacing like Reports header, horizontal padding responsive */
   padding: 1.75rem clamp(1rem, 3vw, 3rem);
 }
 
@@ -72,6 +71,318 @@
 .btn-cancel:focus {
   outline: none;
   box-shadow: 0 0 0 3px rgba(117, 117, 117, 0.15);
+}
+
+/* Modal-specific button overrides to beat `.auth-form button` styles */
+.modal .btn-add-user {
+  padding: 0.75rem 1.5rem;
+  background: #3d7949 !important;
+  color: white !important;
+  border: none !important;
+  border-radius: 0.375rem !important;
+  font-size: 1rem !important;
+  font-weight: 500 !important;
+  cursor: pointer !important;
+  transition: background 0.2s !important;
+}
+
+.modal .btn-add-user:hover {
+  background: #2d5a39 !important;
+}
+
+.modal .btn-cancel {
+  padding: 0.75rem 1.5rem !important;
+  background: #757575 !important;
+  color: white !important;
+  border: none !important;
+  border-radius: 0.375rem !important;
+  font-size: 1rem !important;
+  font-weight: 500 !important;
+  cursor: pointer !important;
+}
+
+.modal .btn-cancel:hover {
+  background: #5f5f5f !important;
+}
+
+/* Success modal (centered confirmation) */
+.success-overlay {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0,0,0,0.35);
+  z-index: 1100;
+  padding: 1rem;
+}
+
+.success-modal {
+  width: 100%;
+  max-width: 720px;
+  background: #ffffff;
+  border-radius: 12px;
+  padding: 2rem 2.5rem;
+  box-shadow: 0 20px 60px rgba(2,6,23,0.2);
+  position: relative;
+  text-align: center;
+}
+
+.success-close {
+  position: absolute;
+  top: 0.75rem;
+  right: 0.75rem;
+  background: transparent;
+  border: none;
+  font-size: 1.25rem;
+  cursor: pointer;
+}
+
+.success-body h2 {
+  margin: 0 0 1.25rem 0;
+  font-size: 1.75rem;
+  color: #0f2b1f;
+}
+
+.success-actions {
+  display: flex;
+  justify-content: center;
+  padding-top: 1rem;
+}
+
+.success-modal .btn-add-user {
+  min-width: 220px;
+}
+
+/* Ensure no uppercase from auth.css */
+.success-modal .btn-add-user {
+  text-transform: none !important;
+}
+
+/* Confirm modal styles reuse success modal look */
+.confirm-overlay {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0,0,0,0.35);
+  z-index: 1150;
+  padding: 1rem;
+}
+
+.confirm-modal {
+  width: 100%;
+  max-width: 900px;
+  background: #ffffff;
+  border-radius: 12px;
+  padding: 2rem 2.5rem;
+  box-shadow: 0 20px 60px rgba(2,6,23,0.2);
+  position: relative;
+  text-align: center;
+}
+
+.confirm-modal .success-body h2 {
+  margin: 0 0 1.5rem 0;
+  font-size: 1.6rem;
+  color: #0f2b1f;
+}
+
+.confirm-modal .success-actions {
+  display: flex;
+  gap: 1rem;
+  justify-content: center;
+}
+
+/* Danger button for deactivation */
+.btn-danger {
+  padding: 0.75rem 1.5rem;
+  background: #c53030;
+  color: white;
+  border: none;
+  border-radius: 0.375rem;
+  font-size: 1rem;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.btn-danger:hover {
+  background: #9b2c2c;
+}
+
+.confirm-modal .btn-cancel {
+  /* allow the button to size to its content */
+  min-width: 0;
+  width: auto;
+  display: inline-block;
+}
+
+.confirm-modal .btn-add-user,
+.confirm-modal .btn-danger,
+.confirm-modal .btn-cancel {
+  text-transform: none !important;
+}
+
+/* Ensure 'Regresar' in confirm modal matches the cancel button look and hover */
+.confirm-modal .btn-cancel {
+  background: #757575 !important;
+  color: #ffffff !important;
+  border: none !important;
+  /* make the width wrap the text and use modest padding */
+  padding: 0.5rem 1rem !important;
+  width: auto !important;
+  min-width: 0 !important;
+  display: inline-block !important;
+  border-radius: 0.375rem !important;
+  font-size: 1rem !important;
+  font-weight: 400 !important;
+  text-align: center;
+}
+
+.confirm-modal .btn-cancel:hover {
+  background: #5f5f5f !important;
+}
+
+/* Remove uppercase text-transform coming from `auth.css` inside modal */
+.modal .btn-add-user,
+.modal .btn-cancel {
+  text-transform: none !important;
+  letter-spacing: 0 !important;
+}
+
+/* User Details Modal */
+.details-overlay {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0,0,0,0.35);
+  z-index: 1200;
+  padding: 1rem;
+}
+
+.details-modal {
+  width: 100%;
+  max-width: 850px;
+  background: #ffffff;
+  border-radius: 12px;
+  padding: 2rem 2.5rem;
+  box-shadow: 0 20px 60px rgba(2,6,23,0.2);
+  position: relative;
+  max-height: 90vh;
+  overflow-y: auto;
+}
+
+.details-modal .success-close {
+  position: absolute;
+  top: 0.75rem;
+  right: 0.75rem;
+  background: transparent;
+  border: none;
+  font-size: 1.25rem;
+  cursor: pointer;
+  color: #6b7280;
+  transition: color 0.2s;
+}
+
+.details-modal .success-close:hover {
+  color: #1f2937;
+}
+
+.details-content h2 {
+  margin: 0 0 1.75rem 0;
+  font-size: 1.5rem;
+  color: #0f2b1f;
+  font-weight: 600;
+}
+
+.info-section {
+  margin-top: 1.5rem;
+}
+
+.info-section h3 {
+  margin: 0 0 1rem 0;
+  font-size: 1rem;
+  font-weight: 500;
+  color: #374151;
+}
+
+.info-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.5rem 2rem;
+  background: #f9fafb;
+  padding: 1.5rem;
+  border-radius: 0.5rem;
+  border: 1px solid #e5e7eb;
+}
+
+.info-row {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.info-row label {
+  font-weight: 600;
+  color: #1f2937;
+  font-size: 0.875rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.info-row span {
+  color: #6b7280;
+  font-size: 1rem;
+  font-weight: 400;
+}
+
+.info-row .role-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 1.75rem;
+  padding: 0 0.75rem;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  width: fit-content;
+}
+
+.info-row .status-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 1.75rem;
+  padding: 0 0.75rem;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  width: fit-content;
+}
+
+.status-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 1.75rem;
+  padding: 0 0.75rem;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-align: center;
+  width: fit-content;
+}
+
+.status-active {
+  background: #d1fae5;
+  color: #064e3b;
+}
+
+.status-inactive {
+  background: #fee2e2;
+  color: #7f1d1d;
 }
 
 /* User Form */
@@ -211,12 +522,12 @@
 
 .role-badge--admin {
   background: #d1d5db;
-  color: #111827;
+  color: #1f2937;
 }
 
 .role-badge--empleado {
   background: #fef3c7;
-  color: #78350f;
+  color: #92400e;
 }
 
 /* Actions Cell */
@@ -334,7 +645,6 @@
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
 }
 
-/* Messages */
 .loading-message,
 .no-users-message {
   text-align: center;
@@ -343,7 +653,6 @@
   font-size: 1rem;
 }
 
-/* Modal styles for create user */
 .modal-overlay {
   position: fixed;
   inset: 0;
@@ -446,4 +755,18 @@
   .toggle-switch.active::before {
     transform: translateX(1.25rem);
   }
+
+  .info-grid {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+
+  .details-modal {
+    padding: 1.5rem 1rem;
+  }
+
+  .details-content h2 {
+    font-size: 1.25rem;
+  }
 }
+
