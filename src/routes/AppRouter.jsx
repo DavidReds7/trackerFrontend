@@ -3,6 +3,7 @@ import { Navigate, Routes, Route } from 'react-router-dom';
 import DashboardPage from '../features/admin/pages/DashboardPage';
 import ReportsPage from '../features/admin/pages/ReportsPage';
 import ProfilePage from '../features/admin/pages/ProfilePage';
+import UsersPage from '../features/admin/pages/UsersPage';
 import LoginPage from '../features/auth/pages/LoginPage';
 import RecoveryPage from '../features/auth/pages/RecoveryPage';
 import RegisterPage from '../features/auth/pages/RegisterPage';
@@ -30,6 +31,7 @@ function AppRouter() {
       <Route element={<PrivateRouter />}>
         <Route path="/admin" element={<DashboardPage />} />
         <Route path="/admin/reportes" element={<ReportsPage />} />
+        <Route path="/admin/usuarios" element={<UsersPage />} />
         <Route path="/admin/perfil" element={<ProfilePage />} />
       </Route>
       <Route path="*" element={<NotFoundPage />} />
