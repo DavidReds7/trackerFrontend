@@ -9,6 +9,7 @@ const LoginPage = () => {
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
   const { login, mockLogin } = useAuth();
+  const { startPendingLogin } = useAuth();
   const circlePosition = 'right';
 
   const handleChange = ({ target: { name, value } }) => {
@@ -20,17 +21,42 @@ const LoginPage = () => {
     setLoading(true);
     setStatus('Validando tus datos...');
     try {
-      await login(form);
-      setStatus('Acceso concedido. Redirigiendo...');
-      navigate('/admin');
+      const resp = await login(form);
+
+      // Si backend indica que requiere 2FA -> iniciar flujo 2FA
+      if (resp && resp.requiere2FA) {
+        setStatus('Se requiere código 2FA. Completa la verificación.');
+        // Guardar credentials + userId para TwoFAPage
+        startPendingLogin(form, { userId: resp.id });
+        navigate('/auth/2fa');
+        return;
+      }
+
+      // Si recibimos token => inicio de sesión exitoso
+      if (resp && resp.token) {
+        setStatus('Acceso concedido. Redirigiendo...');
+        navigate('/admin');
+        return;
+      }
+
+      // Si no hay token ni 2FA, tratamos la respuesta como error
+      throw new Error((resp && resp.message) || 'Respuesta inesperada del servidor.');
     } catch (error) {
-      const fallbackUser = {
-        username: form.email ? form.email.split('@')[0] : 'administrador',
-        email: form.email || 'admin@tracker.local'
-      };
-      mockLogin(fallbackUser);
-      setStatus('Backend inaccesible. Entraste en modo maqueta.');
-      navigate('/admin');
+      const msg = (error && error.message) || String(error);
+      const isNetworkError = /inaccesible|Failed to fetch|NetworkError/i.test(msg) || error.name === 'TypeError';
+
+      if (isNetworkError) {
+        const fallbackUser = {
+          username: form.email ? form.email.split('@')[0] : 'administrador',
+          email: form.email || 'admin@tracker.local'
+        };
+        mockLogin(fallbackUser);
+        setStatus('Backend inaccesible. Entraste en modo maqueta.');
+        navigate('/admin');
+      } else {
+        // Validation / authentication error from backend (don't mock-login)
+        setStatus(msg || 'Credenciales inválidas.');
+      }
     } finally {
       setLoading(false);
     }

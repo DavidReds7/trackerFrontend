@@ -6,6 +6,7 @@ import ProfilePage from '../features/admin/pages/ProfilePage';
 import LoginPage from '../features/auth/pages/LoginPage';
 import RecoveryPage from '../features/auth/pages/RecoveryPage';
 import RegisterPage from '../features/auth/pages/RegisterPage';
+import TwoFAPage from '../features/auth/pages/TwoFAPage';
 import PrivateRouter from './PrivateRouter';
 import PublicRouter from './PublicRouter';
 
@@ -22,6 +23,7 @@ function AppRouter() {
       <Route path="/" element={<Navigate to="/auth/login" replace />} />
       <Route element={<PublicRouter />}>
         <Route path="/auth/login" element={<LoginPage />} />
+        <Route path="/auth/2fa" element={<TwoFAPage />} />
         <Route path="/auth/recuperar" element={<RecoveryPage />} />
         <Route path="/auth/crear" element={<RegisterPage />} />
       </Route>
