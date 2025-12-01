@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from 'react';
-import { FiEye, FiEdit, FiPower } from 'react-icons/fi';
+import { FiEye, FiEdit } from 'react-icons/fi';
 import '@/features/admin/pages/admin-layout.css';
 import '@/features/admin/pages/users.css';
+import '@/assets/css/auth.css';
 import { useAuth } from '@/context/AuthContext';
 import AdminHeader from '../components/AdminHeader';
 
@@ -17,8 +18,7 @@ const UsersPage = () => {
     password: '',
     nombre: '',
     apellidoPaterno: '',
-    apellidoMaterno: '',
-    rol: 'EMPLEADO'
+    apellidoMaterno: ''
   });
   const [formError, setFormError] = useState(null);
   const [formSuccess, setFormSuccess] = useState(null);
@@ -90,13 +90,22 @@ const UsersPage = () => {
     setFormSuccess(null);
 
     try {
+      const payload = {
+        email: formData.email,
+        password: formData.password,
+        nombre: formData.nombre,
+        apellidoPaterno: formData.apellidoPaterno,
+        apellidoMaterno: formData.apellidoMaterno,
+        rol: 'EMPLEADO'
+      };
+
       const response = await fetch(`${BASE_URL}/usuarios`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${token}`
         },
-        body: JSON.stringify(formData)
+        body: JSON.stringify(payload)
       });
 
       if (!response.ok) {
@@ -111,8 +120,7 @@ const UsersPage = () => {
         password: '',
         nombre: '',
         apellidoPaterno: '',
-        apellidoMaterno: '',
-        rol: 'EMPLEADO'
+        apellidoMaterno: ''
       });
       setShowForm(false);
       setTimeout(() => fetchUsers(), 500);
@@ -175,85 +183,96 @@ const UsersPage = () => {
             </div>
 
             {showForm && (
-              <form className="user-form" onSubmit={handleCreateUser}>
-                <div className="form-row">
-                  <div className="form-group">
-                    <label>Nombre *</label>
-                    <input
-                      type="text"
-                      name="nombre"
-                      value={formData.nombre}
-                      onChange={handleFormChange}
-                      required
-                    />
-                  </div>
-                  <div className="form-group">
-                    <label>Apellido Paterno *</label>
-                    <input
-                      type="text"
-                      name="apellidoPaterno"
-                      value={formData.apellidoPaterno}
-                      onChange={handleFormChange}
-                      required
-                    />
+              <div className="modal-overlay" role="dialog" aria-modal="true" aria-label="Crear usuario">
+                <div className="modal">
+                  <header className="modal-header">
+                    <h3>Agregar empleado</h3>
+                    <button type="button" className="modal-close" onClick={() => setShowForm(false)} aria-label="Cerrar modal">
+                      ×
+                    </button>
+                  </header>
+                  <div className="modal-body">
+                    <form className="auth-form" onSubmit={handleCreateUser}>
+                      <div className="form-row">
+                        <label className="auth-form__field">
+                          <span>Nombre <strong>*</strong></span>
+                          <input
+                            type="text"
+                            name="nombre"
+                            value={formData.nombre}
+                            onChange={handleFormChange}
+                            placeholder="Nombre"
+                            required
+                          />
+                        </label>
+                        <label className="auth-form__field">
+                          <span>Apellido paterno <strong>*</strong></span>
+                          <input
+                            type="text"
+                            name="apellidoPaterno"
+                            value={formData.apellidoPaterno}
+                            onChange={handleFormChange}
+                            placeholder="Apellido paterno"
+                            required
+                          />
+                        </label>
+                      </div>
+
+                      <div className="form-row">
+                        <label className="auth-form__field">
+                          <span>Apellido materno</span>
+                          <input
+                            type="text"
+                            name="apellidoMaterno"
+                            value={formData.apellidoMaterno}
+                            onChange={handleFormChange}
+                            placeholder="Apellido materno (opcional)"
+                          />
+                        </label>
+                        <label className="auth-form__field">
+                          <span>Correo electrónico <strong>*</strong></span>
+                          <input
+                            type="email"
+                            name="email"
+                            value={formData.email}
+                            onChange={handleFormChange}
+                            placeholder="Correo electrónico"
+                            required
+                          />
+                        </label>
+                      </div>
+
+                      <div className="form-row">
+                        <label className="auth-form__field">
+                          <span>Contraseña <strong>*</strong></span>
+                          <input
+                            type="password"
+                            name="password"
+                            value={formData.password}
+                            onChange={handleFormChange}
+                            placeholder="Contraseña"
+                            required
+                            minLength={6}
+                          />
+                        </label>
+                        <div />
+                      </div>
+
+                      {formError && <p className="form-error">{formError}</p>}
+                      {formSuccess && <p className="form-success">{formSuccess}</p>}
+
+                      <div className="modal-actions">
+                        <button type="button" className="btn-add-user btn-cancel" onClick={() => setShowForm(false)}>
+                          Cancelar
+                        </button>
+                        <button type="submit" className="btn-add-user">
+                          Crear Usuario
+                        </button>
+                      </div>
+                    </form>
                   </div>
                 </div>
-
-                <div className="form-row">
-                  <div className="form-group">
-                    <label>Apellido Materno</label>
-                    <input
-                      type="text"
-                      name="apellidoMaterno"
-                      value={formData.apellidoMaterno}
-                      onChange={handleFormChange}
-                    />
-                  </div>
-                  <div className="form-group">
-                    <label>Email *</label>
-                    <input
-                      type="email"
-                      name="email"
-                      value={formData.email}
-                      onChange={handleFormChange}
-                      required
-                    />
-                  </div>
-                </div>
-
-                <div className="form-row">
-                  <div className="form-group">
-                    <label>Contraseña *</label>
-                    <input
-                      type="password"
-                      name="password"
-                      value={formData.password}
-                      onChange={handleFormChange}
-                      required
-                      minLength={6}
-                    />
-                  </div>
-                  <div className="form-group">
-                    <label>Rol *</label>
-                    <select
-                      name="rol"
-                      value={formData.rol}
-                      onChange={handleFormChange}
-                      required
-                    >
-                      <option value="EMPLEADO">Empleado</option>
-                      <option value="ADMINISTRADOR">Administrador</option>
-                    </select>
-                  </div>
-                </div>
-
-                {formError && <p className="form-error">{formError}</p>}
-                {formSuccess && <p className="form-success">{formSuccess}</p>}
-
-                <button type="submit" className="btn-submit">
-                  Crear Usuario
-                </button>
-              </form>
+              </div>
             )}
 
             {loading ? (

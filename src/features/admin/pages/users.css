@@ -58,6 +58,22 @@
   background: #2d5a39;
 }
 
+/* Cancel button variant used in modal */
+.btn-cancel {
+  background: #757575;
+  color: white;
+  border: none;
+}
+
+.btn-cancel:hover {
+  background: #5f5f5f;
+}
+
+.btn-cancel:focus {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(117, 117, 117, 0.15);
+}
+
 /* User Form */
 .user-form {
   background: #f9fafb;
@@ -325,6 +341,66 @@
   padding: 2rem;
   color: #6b7280;
   font-size: 1rem;
+}
+
+/* Modal styles for create user */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 1rem;
+}
+
+.modal {
+  width: 100%;
+  max-width: 720px;
+  background: #ffffff;
+  border-radius: 0.5rem;
+  box-shadow: 0 10px 30px rgba(2,6,23,0.2);
+  overflow: hidden;
+}
+
+.modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1rem 1.25rem;
+  border-bottom: 1px solid #eef2f7;
+}
+
+.modal-header h3 {
+  margin: 0;
+  font-size: 1.125rem;
+  color: #111827;
+}
+
+.modal-close {
+  background: transparent;
+  border: none;
+  font-size: 1.5rem;
+  line-height: 1;
+  cursor: pointer;
+  color: #6b7280;
+}
+
+.modal-body {
+  padding: 1.25rem;
+}
+
+.modal-actions {
+  display: flex;
+  gap: 0.75rem;
+  justify-content: flex-end;
+  padding: 0 1.25rem 1.25rem 1.25rem;
+}
+
+.btn-cancel {
+  background: #f3f4f6;
+  color: #374151;
 }
 
 @media (max-width: 768px) {

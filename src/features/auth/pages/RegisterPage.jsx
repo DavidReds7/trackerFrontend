@@ -39,7 +39,6 @@ const RegisterPage = () => {
     };
 
     try {
-      // import dynamic to avoid top-level changes; require authService
       const { register } = await import('../../../api/authService');
       const user = await register(payload);
       setStatus('Cuenta creada correctamente. Puedes iniciar sesión.');
