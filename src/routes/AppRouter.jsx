@@ -4,12 +4,16 @@ import DashboardPage from '../features/admin/pages/DashboardPage';
 import ReportsPage from '../features/admin/pages/ReportsPage';
 import ProfilePage from '../features/admin/pages/ProfilePage';
 import UsersPage from '../features/admin/pages/UsersPage';
+import EmployeeDashboard from '../features/employee/pages/EmployeeDashboard';
 import LoginPage from '../features/auth/pages/LoginPage';
 import RecoveryPage from '../features/auth/pages/RecoveryPage';
 import RegisterPage from '../features/auth/pages/RegisterPage';
 import TwoFAPage from '../features/auth/pages/TwoFAPage';
 import PrivateRouter from './PrivateRouter';
 import PublicRouter from './PublicRouter';
+import AdminRouter from './AdminRouter';
+import EmployeeRouter from './EmployeeRouter';
+import Package from '../features/employee/pages/Package';
 
 const NotFoundPage = () => (
   <section>
@@ -28,11 +32,15 @@ function AppRouter() {
         <Route path="/auth/recuperar" element={<RecoveryPage />} />
         <Route path="/auth/crear" element={<RegisterPage />} />
       </Route>
-      <Route element={<PrivateRouter />}>
+      <Route element={<AdminRouter />}>
         <Route path="/admin" element={<DashboardPage />} />
         <Route path="/admin/reportes" element={<ReportsPage />} />
         <Route path="/admin/usuarios" element={<UsersPage />} />
         <Route path="/admin/perfil" element={<ProfilePage />} />
+      </Route>
+      <Route element={<EmployeeRouter />}>
+        <Route path="/employee" element={<EmployeeDashboard />} />
+        <Route path="/employee/paquetes" element={<Package />} />
       </Route>
       <Route path="*" element={<NotFoundPage />} />
     </Routes>

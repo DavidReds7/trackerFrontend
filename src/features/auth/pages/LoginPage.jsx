@@ -8,7 +8,7 @@ const LoginPage = () => {
   const [status, setStatus] = useState(null);
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
-  const { login, mockLogin } = useAuth();
+  const { login, mockLogin, user } = useAuth();
   const { startPendingLogin } = useAuth();
   const circlePosition = 'right';
 
@@ -35,7 +35,10 @@ const LoginPage = () => {
       // Si recibimos token => inicio de sesión exitoso
       if (resp && resp.token) {
         setStatus('Acceso concedido. Redirigiendo...');
-        navigate('/admin');
+        // Redirigir según rol
+        const rol = resp.rol || (user && user.rol) || null;
+        const path = rol === 'EMPLEADO' ? '/employee' : '/admin';
+        navigate(path);
         return;
       }
 
@@ -50,7 +53,8 @@ const LoginPage = () => {
           username: form.email ? form.email.split('@')[0] : 'administrador',
           email: form.email || 'admin@tracker.local'
         };
-        mockLogin(fallbackUser);
+        // mock as administrator by default when backend is down
+        mockLogin({ ...fallbackUser, rol: 'ADMINISTRADOR' });
         setStatus('Backend inaccesible. Entraste en modo maqueta.');
         navigate('/admin');
       } else {

@@ -11,6 +11,7 @@ function App() {
   const { pathname } = useLocation();
   const isAuthPath = pathname.startsWith('/auth');
   const isAdminPath = pathname.startsWith('/admin');
+  const isEmployeePath = pathname.startsWith('/employee');
 
   useEffect(() => {
     const body = document.body;
@@ -39,7 +40,7 @@ function App() {
       <div className={pageClasses}>
         {isAuthPath ? (
           <AppRouter />
-        ) : isAdminPath ? (
+        ) : isAdminPath || isEmployeePath ? (
           <AppRouter />
         ) : (
           <MainLayout header={<GlobalHeader />}>
