@@ -58,7 +58,7 @@ const TwoFAPage = () => {
   };
 
   return (
-    <AuthScene title="Verificación 2FA" description="Escanea el código QR con tu app autenticadora" circlePosition="right" panelState="idle">
+    <AuthScene title="Verificación 2FA" description="Escanea el código QR con tu app autenticadora" circlePosition="right" panelState>
       <div className="auth-panel__intro">
         <span>{pendingLogin?.email ? `Usuario: ${pendingLogin.email}` : 'Verificación 2FA'}</span>
       </div>
