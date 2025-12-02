@@ -54,7 +54,15 @@ export default function Package() {
     const fetchPackages = async () => {
         setLoading(true);
         try {
-            const resp = await fetch(`${BASE_URL}/paquetes`, {
+            // Obtener ID del empleado del localStorage
+            const user = JSON.parse(localStorage.getItem('user') || '{}');
+            const empleadoId = user.id;
+
+            if (!empleadoId) {
+                throw new Error('No se encontró el ID del empleado');
+            }
+
+            const resp = await fetch(`${BASE_URL}/paquetes/empleado/${empleadoId}`, {
                 method: 'GET',
                 headers: {
                     'Content-Type': 'application/json',
@@ -83,10 +91,7 @@ export default function Package() {
         setFiltered(
             packages.filter(
                 (p) =>
-                    String(p.guia || p.guiaTracking || p.guia_numero || '').toLowerCase().includes(term) ||
-                    String(p.cliente?.nombre || p.cliente || p.nombreCliente || '').toLowerCase().includes(term) ||
-                    String(p.estado || '').toLowerCase().includes(term) ||
-                    String(p.ubicacion || p.ultimaUbicacion || '').toLowerCase().includes(term)
+                    String(p.codigoQR || p.guiaTracking || p.guia_numero || '').toLowerCase().includes(term)
             )
         );
     }, [searchTerm, packages]);
@@ -151,8 +156,8 @@ export default function Package() {
                                 <tbody>
                                     {filtered.map((p) => (
                                         <tr key={p.id || p._id || p.guia || Math.random()}>
-                                            <td>{p.guia || p.guiaTracking || p.guia_numero}</td>
-                                            <td>{(p.cliente && (p.cliente.nombre || p.cliente)) || p.nombreCliente || '-'}</td>
+                                            <td>{p.codigoQR || p.guiaTracking || p.guia_numero}</td>
+                                            <td>{(p.clienteEmail || p.cliente || p.nombreCliente) || '-'}</td>
                                             <td>
                                                 <span className={`status-badge ${p.estado === 'ENTREGADO' ? 'status-active' : 'status-inactive'}`}>
                                                     {p.estado || '-'}
@@ -234,14 +239,46 @@ export default function Package() {
                                                 </label>
                                                 <label className="auth-form__field">
                                                     <span>Dirección Destino <strong>*</strong></span>
-                                                    <input
-                                                        type="text"
+                                                    <select
                                                         name="direccionDestino"
                                                         value={formData.direccionDestino}
                                                         onChange={handleChange}
-                                                        placeholder="Dirección de destino"
                                                         required
-                                                    />
+                                                    >
+                                                        <option value="">Selecciona un estado</option>
+                                                        <option value="Aguascalientes">Aguascalientes</option>
+                                                        <option value="Baja California">Baja California</option>
+                                                        <option value="Baja California Sur">Baja California Sur</option>
+                                                        <option value="Campeche">Campeche</option>
+                                                        <option value="Chiapas">Chiapas</option>
+                                                        <option value="Chihuahua">Chihuahua</option>
+                                                        <option value="Ciudad de México">Ciudad de México</option>
+                                                        <option value="Coahuila">Coahuila</option>
+                                                        <option value="Colima">Colima</option>
+                                                        <option value="Durango">Durango</option>
+                                                        <option value="Guanajuato">Guanajuato</option>
+                                                        <option value="Guerrero">Guerrero</option>
+                                                        <option value="Hidalgo">Hidalgo</option>
+                                                        <option value="Jalisco">Jalisco</option>
+                                                        <option value="México">México</option>
+                                                        <option value="Michoacán">Michoacán</option>
+                                                        <option value="Morelos">Morelos</option>
+                                                        <option value="Nayarit">Nayarit</option>
+                                                        <option value="Nuevo León">Nuevo León</option>
+                                                        <option value="Oaxaca">Oaxaca</option>
+                                                        <option value="Puebla">Puebla</option>
+                                                        <option value="Querétaro">Querétaro</option>
+                                                        <option value="Quintana Roo">Quintana Roo</option>
+                                                        <option value="San Luis Potosí">San Luis Potosí</option>
+                                                        <option value="Sinaloa">Sinaloa</option>
+                                                        <option value="Sonora">Sonora</option>
+                                                        <option value="Tabasco">Tabasco</option>
+                                                        <option value="Tamaulipas">Tamaulipas</option>
+                                                        <option value="Tlaxcala">Tlaxcala</option>
+                                                        <option value="Veracruz">Veracruz</option>
+                                                        <option value="Yucatán">Yucatán</option>
+                                                        <option value="Zacatecas">Zacatecas</option>
+                                                    </select>
                                                 </label>
                                             </div>
 
