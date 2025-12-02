@@ -20,6 +20,9 @@
   box-shadow: 0 35px 80px rgba(15, 54, 30, 0.08);
   border: 1px solid var(--profile-border);
   margin-bottom: 2.5rem;
+  justify-content: space-between;
+  display: flex;
+  flex-direction: row;
 }
 
 .profile-hero__badge {
@@ -135,5 +138,100 @@
   padding: 0.65rem 1.5rem;
   font-weight: 600;
   box-shadow: 0 14px 30px rgba(16, 82, 43, 0.35);
+}
+
+.confirm-modal .success-actions {
+  display: flex;
+  gap: 0.75rem;
+  justify-content: flex-end;
+  margin-top: 1rem;
+}
+
+.confirm-modal .btn-add-user,
+.confirm-modal .btn-cancel,
+.confirm-modal .btn-danger,
+.confirm-modal .btn-primary {
+  padding: 0.75rem 1.5rem;
+  border: none;
+  border-radius: 9999px !important;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s, box-shadow 0.2s;
+}
+
+/* Confirm (green) */
+.confirm-modal .btn-add-user,
+.confirm-modal .btn-primary {
+  background: #3d7949;
+  color: #fff;
+}
+.confirm-modal .btn-add-user:hover,
+.confirm-modal .btn-primary:hover {
+  background: #2d5a39;
+}
+
+.confirm-modal .btn-cancel {
+  background: #e5e7eb;
+  color: #111827;
+}
+.confirm-modal .btn-cancel:hover {
+  background: #d1d5db;
+}
+
+/* Danger (red) for destructive actions like logout */
+.confirm-modal .btn-danger {
+  background: #dc2626;
+  color: #fff;
+}
+.confirm-modal .btn-danger:hover {
+  background: #b91c1c;
+}
+
+/* Required field marker */
+.required-star {
+  color: #dc2626;
+  font-weight: 700;
+  margin-left: 4px;
+}
+
+.toast-container {
+  position: fixed;
+  top: 20px;
+  right: clamp(16px, 3vw, 32px);
+  z-index: 1000;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.toast {
+  min-width: 240px;
+  max-width: 360px;
+  padding: 0.75rem 1rem;
+  border-radius: 10px;
+  color: #fff;
+  font-weight: 600;
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.18);
+  animation: slideInRight 250ms ease-out;
+}
+
+.toast--success {
+  background: #3d7949;
+}
+
+.toast--error {
+  background: #dc2626;
+}
+
+@keyframes slideInRight {
+  from {
+    opacity: 0;
+    transform: translateX(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
 }
 

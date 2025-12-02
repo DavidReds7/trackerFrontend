@@ -1,28 +1,133 @@
-import React from 'react';
-import '@/features/admin/pages/profile.css';
-import AdminHeader from '../components/AdminHeader';
-import { useAuth } from '@/context/AuthContext';
+import React, {useState, useEffect} from "react";
+import "@/features/admin/pages/profile.css";
+import AdminHeader from "../components/AdminHeader";
+import { useAuth } from "@/context/AuthContext";
+import { updateUser } from "@/api/adminService";
 
 const ProfilePage = () => {
-  const { user } = useAuth();
+  const { user, token, mockLogin } = useAuth();
+
+  const [formData, setFormData] = useState({
+    nombre: user?.nombre ?? "",
+    apellidoPaterno: user?.apellidoPaterno ?? "",
+    apellidoMaterno: user?.apellidoMaterno ?? "",
+    email: user?.email ?? "",
+  });
+  const [toast, setToast] = useState({ type: null, message: "" });
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [satisfaction, setSatisfaction] = useState(null);
+
+  useEffect(() => {
+    setFormData({
+      nombre: user?.nombre ?? "",
+      apellidoPaterno: user?.apellidoPaterno ?? "",
+      apellidoMaterno: user?.apellidoMaterno ?? "",
+      email: user?.email ?? "",
+    });
+  }, [user]);
+
+  useEffect(() => {
+    const fetchSatisfaction = async () => {
+      try {
+        const res = await fetch("http://localhost:8080/api/paquetes/satisfaccion", {
+          headers: {
+            ...(token ? { Authorization: `Bearer ${token}` } : {}),
+          },
+        });
+        if (!res.ok) throw new Error("No se pudo obtener la satisfacción");
+        const data = await res.json();
+        const value = typeof data === "number" ? data : data.porcentaje ?? 0;
+        setSatisfaction(Math.round(value));
+      } catch (e) {
+        setSatisfaction(0);
+      }
+    };
+    fetchSatisfaction();
+  }, [token]);
+
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setFormData((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    setConfirmOpen(true);
+  };
+
+  const handleConfirmUpdate = async () => {
+    try {
+      const payload = {
+        email: formData.email,
+        nombre: formData.nombre,
+        apellidoPaterno: formData.apellidoPaterno,
+        apellidoMaterno: formData.apellidoMaterno,
+      };
+      await updateUser(user.id, payload, token);
+      const mergedUser = {
+        ...user,
+        email: payload.email,
+        nombre: payload.nombre,
+        apellidoPaterno: payload.apellidoPaterno,
+        apellidoMaterno: payload.apellidoMaterno,
+      };
+      mockLogin(mergedUser);
+      setToast({
+        type: "success",
+        message: "Perfil actualizado correctamente",
+      });
+      setTimeout(() => setToast({ type: null, message: "" }), 3000);
+      setConfirmOpen(false);
+    } catch (err) {
+      setToast({
+        type: "error",
+        message: err.message || "Error al actualizar perfil",
+      });
+      setTimeout(() => setToast({ type: null, message: "" }), 3000);
+      setConfirmOpen(false);
+    }
+  };
+
+  const handleConfirmEdit = async () => {
+    try {
+      const payload = {
+        email: formData.email,
+        nombre: formData.nombre,
+        apellidoPaterno: formData.apellidoPaterno,
+        apellidoMaterno: formData.apellidoMaterno,
+      };
+      await updateUser(user.id, payload, token);
+      const mergedUser = {
+        ...user,
+        email: payload.email,
+        nombre: payload.nombre,
+        apellidoPaterno: payload.apellidoPaterno,
+        apellidoMaterno: payload.apellidoMaterno,
+      };
+      mockLogin(mergedUser);
+      setFormSuccess("Perfil actualizado correctamente");
+      setPendingEdit(false);
+    } catch (err) {
+      setEditError(err.message || "Error al actualizar perfil");
+      setPendingEdit(false);
+    }
+  };
 
   return (
     <div className="admin-shell">
       <AdminHeader />
       <div className="profile-body">
         <section className="profile-hero">
-          <div className="profile-hero__badge">Tracker</div>
-          <h1>Mi cuenta</h1>
-          <p>
-            Bienvenido de nuevo, {user?.username ?? 'administrador'}. Aquí puedes actualizar tu información personal y revisar el estado de tu cuenta.
-          </p>
+          <div>
+            <h1>Mi cuenta</h1>
+            <p>
+              Bienvenido de nuevo, {user?.nombre} {user?.apellidoPaterno}{" "}
+              {user?.apellidoMaterno}
+            </p>
+          </div>
           <div className="profile-hero__stats">
             <div>
-              <strong>4</strong>
-              <span>Paquetes supervisados</span>
-            </div>
-            <div>
-              <strong>98%</strong>
+              <strong>{satisfaction !== null ? `${satisfaction}%` : '...'}</strong>
               <span>Índice de cumplimiento</span>
             </div>
           </div>
@@ -31,43 +136,134 @@ const ProfilePage = () => {
         <section className="profile-card">
           <header>
             <h2>Perfil</h2>
-            <p>Actualiza tu correo, nombre o contraseña cuando lo necesites.</p>
+            <p>Actualiza tu correo, nombre o apellidos cuando lo necesites.</p>
           </header>
-          <div className="profile-form">
+          <form className="profile-form" onSubmit={handleSubmit}>
             <label>
-              Nombre completo
-              <input type="text" placeholder="Nombre" defaultValue={user?.username ?? ''} />
+              <span>
+                Nombre completo <span className="required-star">*</span>
+              </span>
+              <input
+                type="text"
+                name="nombre"
+                placeholder="Nombre"
+                value={formData.nombre}
+                onChange={handleChange}
+                required
+              />
             </label>
             <label>
-              Apellido paterno
-              <input type="text" placeholder="Apellido paterno" />
+              <span>
+                Apellido paterno <span className="required-star">*</span>
+              </span>
+              <input
+                type="text"
+                name="apellidoPaterno"
+                placeholder="Apellido paterno"
+                value={formData.apellidoPaterno}
+                onChange={handleChange}
+                required
+              />
             </label>
             <label>
               Apellido materno
-              <input type="text" placeholder="Apellido materno" />
+              <input
+                type="text"
+                name="apellidoMaterno"
+                placeholder="Apellido materno"
+                value={formData.apellidoMaterno}
+                onChange={handleChange}
+              />
             </label>
             <label>
-              Correo electrónico
-              <input type="email" placeholder="correo@tracker.com" defaultValue={user?.email ?? ''} />
+              <span>
+                Correo electrónico <span className="required-star">*</span>
+              </span>
+              <input
+                type="email"
+                name="email"
+                placeholder="correo@tracker.com"
+                value={formData.email}
+                onChange={handleChange}
+                required
+              />
             </label>
-            <label>
-              Contraseña actual
-              <input type="password" placeholder="********" />
-            </label>
-            <label>
-              Nueva contraseña
-              <input type="password" placeholder="Nueva contraseña" />
-            </label>
-          </div>
-          <div className="profile-actions">
-            <button type="button" className="ghost">Cancelar</button>
-            <button type="button">Actualizar</button>
-          </div>
+
+            <div className="profile-actions">
+              <button
+                type="button"
+                className="ghost"
+                onClick={() =>
+                  setFormData({
+                    nombre: user?.nombre ?? "",
+                    apellidoPaterno: user?.apellidoPaterno ?? "",
+                    apellidoMaterno: user?.apellidoMaterno ?? "",
+                    email: user?.email ?? "",
+                  })
+                }
+              >
+                Cancelar
+              </button>
+              <button type="submit">Actualizar</button>
+            </div>
+          </form>
         </section>
+
+        {toast.type && (
+          <div
+            className="toast-container"
+            aria-live="polite"
+            aria-atomic="true"
+          >
+            <div
+              className={`toast ${
+                toast.type === "success" ? "toast--success" : "toast--error"
+              }`}
+            >
+              {toast.message}
+            </div>
+          </div>
+        )}
+        {confirmOpen && (
+          <div
+            className="confirm-overlay"
+            role="dialog"
+            aria-modal="true"
+            aria-label="Confirmación"
+          >
+            <div className="confirm-modal">
+              <button
+                className="success-close"
+                aria-label="Cerrar"
+                onClick={() => setConfirmOpen(false)}
+              >
+                ×
+              </button>
+              <div className="success-body">
+                <h2>¿Deseas actualizar tu perfil?</h2>
+                <div className="success-actions">
+                  <button
+                    className="btn-cancel"
+                    type="button"
+                    onClick={() => setConfirmOpen(false)}
+                  >
+                    Regresar
+                  </button>
+                  <button
+                    className="btn-add-user"
+                    type="button"
+                    onClick={handleConfirmUpdate}
+                  >
+                    Confirmar
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
 };
 
 export default ProfilePage;
-

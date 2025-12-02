@@ -37,6 +37,7 @@ const UsersPage = () => {
   });
   const [editError, setEditError] = useState(null);
   const [pendingEdit, setPendingEdit] = useState(null);
+  const [toast, setToast] = useState({ type: null, message: '' });
 
   const BASE_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:8080/api';
 
@@ -162,8 +163,13 @@ const UsersPage = () => {
       }
 
       fetchUsers();
+      const msg = currentStatus ? 'Usuario desactivado' : 'Usuario activado';
+      setToast({ type: 'success', message: msg });
+      setTimeout(() => setToast({ type: null, message: '' }), 3000);
     } catch (err) {
       console.error('Error:', err);
+      setToast({ type: 'error', message: err.message || 'Error al actualizar estado' });
+      setTimeout(() => setToast({ type: null, message: '' }), 3000);
     }
   };
 
@@ -217,8 +223,12 @@ const UsersPage = () => {
         apellidoMaterno: ''
       });
       fetchUsers();
+      setToast({ type: 'success', message: 'Empleado actualizado correctamente' });
+      setTimeout(() => setToast({ type: null, message: '' }), 3000);
     } catch (err) {
       setEditError(err.message || 'Error al actualizar usuario');
+      setToast({ type: 'error', message: err.message || 'Error al actualizar usuario' });
+      setTimeout(() => setToast({ type: null, message: '' }), 3000);
     }
   };
 
@@ -231,6 +241,13 @@ const UsersPage = () => {
       <AdminHeader />
       <div className="admin-layout">
         <div className="admin-layout__inner">
+          {toast.type && (
+            <div className="toast-container" aria-live="polite" aria-atomic="true">
+              <div className={`toast ${toast.type === 'success' ? 'toast--success' : 'toast--error'}`}>
+                {toast.message}
+              </div>
+            </div>
+          )}
           <section className="admin-panel--users">
             <div className="admin-panel__header">
               <button
@@ -387,7 +404,6 @@ const UsersPage = () => {
                         <button
                           type="button"
                           className="action-btn action-btn--view"
-                          title="Ver"
                           aria-label="Ver usuario"
                           onClick={() => handleViewUser(u.id)}
                         >
@@ -396,7 +412,6 @@ const UsersPage = () => {
                         <button
                           type="button"
                           className="action-btn action-btn--edit"
-                          title="Editar"
                           aria-label="Editar usuario"
                           onClick={() => handleEditUser(u)}
                         >
@@ -406,7 +421,6 @@ const UsersPage = () => {
                           type="button"
                           className={`toggle-switch ${u.activo ? 'active' : ''}`}
                           onClick={() => setPendingToggle({ id: u.id, name: `${u.nombre} ${u.apellidoPaterno}`, currentStatus: u.activo })}
-                          title={u.activo ? 'Desactivar' : 'Activar'}
                           aria-label={u.activo ? 'Desactivar usuario' : 'Activar usuario'}
                         />
                       </td>

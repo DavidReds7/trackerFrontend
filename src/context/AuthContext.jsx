@@ -1,4 +1,6 @@
 import { createContext, useContext, useMemo, useState } from 'react';
+
+const BASE_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:8080/api';
 import { login as loginService, getAuthToken } from '../api/authService';
 
 const AuthContext = createContext({
@@ -31,12 +33,14 @@ export const AuthProvider = ({ children }) => {
   const login = async (credentials) => {
     const loginResp = await loginService(credentials);
 
-    // loginResp expected shape: { token, tipoToken, id, email, nombre, rol, requiere2FA }
+    // loginResp expected shape: { token, tipoToken, id, email, nombre, apellidoPaterno, apellidoMaterno, rol, requiere2FA }
     if (loginResp && loginResp.token) {
       const userData = {
         id: loginResp.id,
         email: loginResp.email,
         nombre: loginResp.nombre,
+        apellidoPaterno: loginResp.apellidoPaterno ?? null,
+        apellidoMaterno: loginResp.apellidoMaterno ?? null,
         rol: loginResp.rol,
         requiere2FA: loginResp.requiere2FA
       };
@@ -46,12 +50,33 @@ export const AuthProvider = ({ children }) => {
       } catch (e) {}
       setToken(loginResp.token);
       setUser(userData);
-    } else if (loginResp && loginResp.requiere2FA) {
-      // Si requiere 2FA, NO guardar usuario ni token; solo devolver la respuesta
-      // El frontend debe redirigir a /auth/2fa
-    }
-    // En otros casos, no hacer nada (error será manejado en LoginPage)
 
+      try {
+        const resp = await fetch(`${BASE_URL}/usuarios/${userData.id}`, {
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${loginResp.token}`,
+          },
+        });
+        if (resp.ok) {
+          const apiResp = await resp.json();
+          const full = apiResp?.data ?? apiResp;
+          const merged = {
+            ...userData,
+            nombre: full?.nombre ?? userData.nombre,
+            email: full?.email ?? userData.email,
+            apellidoPaterno: full?.apellidoPaterno ?? null,
+            apellidoMaterno: full?.apellidoMaterno ?? null,
+            ubicacion: full?.ubicacion ?? null,
+          };
+          try {
+            localStorage.setItem('user', JSON.stringify(merged));
+          } catch (e) {}
+          setUser(merged);
+        }
+      } catch (e) {}
+    } else if (loginResp && loginResp.requiere2FA) {
+    }
     return loginResp;
   };
 
@@ -79,6 +104,8 @@ export const AuthProvider = ({ children }) => {
         id: loginResp.id,
         email: loginResp.email,
         nombre: loginResp.nombre,
+        apellidoPaterno: loginResp.apellidoPaterno ?? null,
+        apellidoMaterno: loginResp.apellidoMaterno ?? null,
         rol: loginResp.rol,
         requiere2FA: false
       };
@@ -88,6 +115,31 @@ export const AuthProvider = ({ children }) => {
       } catch (e) {}
       setToken(loginResp.token);
       setUser(userData);
+      // Always hydrate full user profile after 2FA
+      try {
+        const resp = await fetch(`${BASE_URL}/usuarios/${userData.id}`, {
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${loginResp.token}`,
+          },
+        });
+        if (resp.ok) {
+          const apiResp = await resp.json();
+          const full = apiResp?.data ?? apiResp;
+          const merged = {
+            ...userData,
+            nombre: full?.nombre ?? userData.nombre,
+            email: full?.email ?? userData.email,
+            apellidoPaterno: full?.apellidoPaterno ?? null,
+            apellidoMaterno: full?.apellidoMaterno ?? null,
+            ubicacion: full?.ubicacion ?? null,
+          };
+          try {
+            localStorage.setItem('user', JSON.stringify(merged));
+          } catch (e) {}
+          setUser(merged);
+        }
+      } catch (e) {}
       clearPendingLogin();
     }
     return loginResp;
