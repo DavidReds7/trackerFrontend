@@ -1,24 +1,28 @@
-import React, {useState} from "react";
-import { NavLink } from "react-router-dom";
-import { useAuth } from "@/context/AuthContext";
+import React, { useState } from 'react';
+import { NavLink } from 'react-router-dom';
+import { useAuth } from '@/context/AuthContext';
 
 const navItems = [
-  { label: "Dashboard", to: "/admin" },
-  { label: "Reportes", to: "/admin/reportes" },
-  { label: "Usuarios", to: "/admin/usuarios" },
-  { label: "Mi Perfil", to: "/admin/perfil" },
+    { label: 'Dashboard', to: '/admin' },
+    { label: 'Reportes', to: '/admin/reportes' },
+    { label: 'Usuarios', to: '/admin/usuarios' },
+    { label: 'Mi Perfil', to: '/admin/perfil' }
 ];
 
 const AdminHeader = () => {
   const { logout } = useAuth();
-
   const [pendingLogout, setPendingLogout] = useState(false);
 
-  const handleLogoutClick = () => setPendingLogout(true);
-  const cancelLogout = () => setPendingLogout(false);
+  const startLogout = () => {
+    setPendingLogout(true);
+  };
 
-  const confirmLogout = async () => {
-    await logout();
+  const cancelLogout = () => {
+    setPendingLogout(false);
+  };
+
+  const confirmLogout = () => {
+    logout();
     setPendingLogout(false);
   };
 
@@ -42,12 +46,7 @@ const AdminHeader = () => {
           </NavLink>
         ))}
       </nav>
-
-      <button
-        type="button"
-        className="admin-header__logout"
-        onClick={handleLogoutClick}
-      >
+      <button type="button" className="admin-header__logout" onClick={startLogout}>
         Salir
       </button>
 
@@ -68,9 +67,7 @@ const AdminHeader = () => {
             </button>
 
             <div className="success-body">
-              <h2 id="confirm-logout-title">
-                ¿Está seguro de querer cerrar sesión?
-              </h2>
+              <h2 id="confirm-logout-title">¿Está seguro de querer cerrar sesión?</h2>
 
               <div className="success-actions">
                 <button className="btn-cancel" onClick={cancelLogout}>

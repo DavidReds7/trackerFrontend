@@ -1,55 +1,19 @@
 import React, { useEffect, useState } from "react";
 import ClientHeader from "../components/ClientHeader";
 import "@/features/admin/pages/admin-layout.css";
-import "@/features/admin/pages/users.css";
+import "@/features/client/pages/client.css";
 import { useAuth } from "@/context/AuthContext";
-import { createPackage } from "@/api/packageService";
 import { FiEye } from "react-icons/fi";
 
 export default function ClientPackages() {
   const { token } = useAuth();
-  const [formError, setFormError] = useState(null);
-  const [formSuccess, setFormSuccess] = useState(null);
   const [packages, setPackages] = useState([]);
   const [filtered, setFiltered] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [loading, setLoading] = useState(false);
-  const [showForm, setShowForm] = useState(false);
   const [selected, setSelected] = useState(null);
   const [details, setDetails] = useState(null);
-  const [formData, setFormData] = useState({
-    descripcion: "",
-    clienteEmail: "",
-    direccionOrigen: "",
-    direccionDestino: "",
-  });
   const BASE_URL = import.meta.env.VITE_API_URL ?? "http://localhost:8080/api";
-
-  const handleChange = (e) => {
-    const { name, value } = e.target;
-    setFormData((p) => ({ ...p, [name]: value }));
-  };
-
-  const handleCreatePackage = async (e) => {
-    e.preventDefault();
-    setFormError(null);
-    setFormSuccess(null);
-
-    try {
-      await createPackage(formData, token);
-      setFormSuccess("Paquete registrado correctamente");
-      setFormData({
-        descripcion: "",
-        clienteEmail: "",
-        direccionOrigen: "",
-        direccionDestino: "",
-      });
-      setShowForm(false);
-      fetchPackages();
-    } catch (err) {
-      setFormError(err.message || "Error al crear el paquete");
-    }
-  };
 
   useEffect(() => {
     if (token) fetchPackages();
@@ -58,7 +22,15 @@ export default function ClientPackages() {
   const fetchPackages = async () => {
     setLoading(true);
     try {
-      const resp = await fetch(`${BASE_URL}/paquetes`, {
+      // Obtener email del localStorage
+      const user = JSON.parse(localStorage.getItem('user') || '{}');
+      const clienteEmail = user.email;
+
+      if (!clienteEmail) {
+        throw new Error('No se encontró el email del cliente');
+      }
+
+      const resp = await fetch(`${BASE_URL}/paquetes/cliente/${clienteEmail}`, {
         method: "GET",
         headers: {
           "Content-Type": "application/json",
@@ -87,10 +59,10 @@ export default function ClientPackages() {
     setFiltered(
       packages.filter(
         (p) =>
-          String(p.guia || p.guiaTracking || p.guia_numero || "")
+          String(p.codigoQR || "")
             .toLowerCase()
             .includes(term) ||
-          String(p.cliente?.nombre || p.cliente || p.nombreCliente || "")
+          String(p.clienteEmail || "")
             .toLowerCase()
             .includes(term) ||
           String(p.estado || "")
@@ -122,6 +94,21 @@ export default function ClientPackages() {
     }
   };
 
+  const getStatusClass = (estado) => {
+    switch (estado) {
+      case "RECOLECTADO":
+        return "status-pending"; // Amarillo/Naranja: En espera de iniciar tránsito
+      case "EN_TRANSITO":
+        return "status-in-progress"; // Azul: Moviéndose
+      case "ENTREGADO":
+        return "status-success"; // Verde: Finalizado
+      case "CANCELADO":
+        return "status-danger"; // Rojo: Cancelado
+      default:
+        return "status-unknown"; // Gris: Estado no reconocido
+    }
+  };
+
   return (
     <div className="admin-shell">
       <ClientHeader />
@@ -129,13 +116,7 @@ export default function ClientPackages() {
         <div className="admin-layout__inner">
           <section className="admin-panel--users">
             <div className="admin-panel__header">
-              <button
-                type="button"
-                className="btn-add-user"
-                onClick={() => setShowForm(!showForm)}
-              >
-                Agregar Paquete
-              </button>
+              <h2>Mis Paquetes</h2>
               <div className="admin-panel__controls">
                 <input
                   type="text"
@@ -163,24 +144,23 @@ export default function ClientPackages() {
                 <tbody>
                   {filtered.map((p) => (
                     <tr key={p.id || p._id || p.guia || Math.random()}>
-                      <td>{p.guia || p.guiaTracking || p.guia_numero}</td>
+                      <td>{p.codigoQR}</td>
                       <td>
-                        {(p.cliente && (p.cliente.nombre || p.cliente)) ||
+                        {p.clienteEmail || "-"}
+                        {p.clienteEmail && p.clienteEmail.includes("@") && " "}
+                        {(p.cliente &&
+                          (p.cliente.nombre || p.cliente)) ||
                           p.nombreCliente ||
-                          "-"}
+                          ""}
                       </td>
                       <td>
                         <span
-                          className={`status-badge ${
-                            p.estado === "ENTREGADO"
-                              ? "status-active"
-                              : "status-inactive"
-                          }`}
+                          className={`status-badge ${getStatusClass(p.estado)}`}
                         >
                           {p.estado || "-"}
                         </span>
                       </td>
-                      <td>{p.ubicacion || p.ultimaUbicacion || "-"}</td>
+                      <td>{p.ubicacion || p.ultimaUbicacion || ""}</td>
                       <td className="actions-cell">
                         <button
                           type="button"
@@ -198,109 +178,6 @@ export default function ClientPackages() {
               </table>
             ) : (
               <p className="no-users-message">No hay paquetes para mostrar</p>
-            )}
-
-            {showForm && (
-              <div
-                className="modal-overlay"
-                role="dialog"
-                aria-modal="true"
-                aria-label="Agregar paquete"
-              >
-                <div className="modal">
-                  <header className="modal-header">
-                    <h3>Agregar paquete</h3>
-                    <button
-                      type="button"
-                      className="modal-close"
-                      onClick={() => setShowForm(false)}
-                      aria-label="Cerrar modal"
-                    >
-                      ×
-                    </button>
-                  </header>
-
-                  <div className="modal-body">
-                    <form className="auth-form" onSubmit={handleCreatePackage}>
-                      <div className="form-row">
-                        <label className="auth-form__field">
-                          <span>
-                            Descripción <strong>*</strong>
-                          </span>
-                          <input
-                            type="text"
-                            name="descripcion"
-                            value={formData.descripcion}
-                            onChange={handleChange}
-                            placeholder="Descripción del paquete"
-                            required
-                          />
-                        </label>
-                        <label className="auth-form__field">
-                          <span>
-                            Email del Cliente <strong>*</strong>
-                          </span>
-                          <input
-                            type="email"
-                            name="clienteEmail"
-                            value={formData.clienteEmail}
-                            onChange={handleChange}
-                            placeholder="correo@ejemplo.com"
-                            required
-                          />
-                        </label>
-                      </div>
-
-                      <div className="form-row">
-                        <label className="auth-form__field">
-                          <span>
-                            Dirección Origen <strong>*</strong>
-                          </span>
-                          <input
-                            type="text"
-                            name="direccionOrigen"
-                            value={formData.direccionOrigen}
-                            onChange={handleChange}
-                            placeholder="Dirección de origen"
-                            required
-                          />
-                        </label>
-                        <label className="auth-form__field">
-                          <span>
-                            Dirección Destino <strong>*</strong>
-                          </span>
-                          <input
-                            type="text"
-                            name="direccionDestino"
-                            value={formData.direccionDestino}
-                            onChange={handleChange}
-                            placeholder="Dirección de destino"
-                            required
-                          />
-                        </label>
-                      </div>
-
-                      {formError && <p className="form-error">{formError}</p>}
-                      {formSuccess && (
-                        <p className="form-success">{formSuccess}</p>
-                      )}
-
-                      <div className="modal-actions">
-                        <button
-                          type="button"
-                          className="btn-add-user btn-cancel"
-                          onClick={() => setShowForm(false)}
-                        >
-                          Cancelar
-                        </button>
-                        <button type="submit" className="btn-add-user">
-                          Guardar paquete
-                        </button>
-                      </div>
-                    </form>
-                  </div>
-                </div>
-              </div>
             )}
 
             {/* Details modal */}
@@ -335,22 +212,20 @@ export default function ClientPackages() {
                           </span>
                         </div>
                         <div className="info-row">
-                          <label>Cliente</label>
-                          <span>
-                            {(details.cliente &&
-                              (details.cliente.nombre || details.cliente)) ||
-                              details.nombreCliente ||
-                              "-"}
+                          <label>Estado</label>
+                          <span
+                            className={`status-badge ${getStatusClass(details.estado)}`}
+                          >
+                            {details.estado || "-"}
                           </span>
                         </div>
                         <div className="info-row">
                           <label>Estado</label>
                           <span
-                            className={`status-badge ${
-                              details.estado === "ENTREGADO"
-                                ? "status-active"
-                                : "status-inactive"
-                            }`}
+                            className={`status-badge ${details.estado === "ENTREGADO"
+                              ? "status-active"
+                              : "status-inactive"
+                              }`}
                           >
                             {details.estado || "-"}
                           </span>

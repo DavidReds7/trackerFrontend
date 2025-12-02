@@ -1,16 +1,8 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import '@/features/admin/pages/dashboard.css';
 import { useAuth } from '@/context/AuthContext';
 import AdminHeader from '../components/AdminHeader';
 import '@/features/admin/pages/admin-layout.css';
-
-const stats = [
-  { value: '4', label: 'Por entregar', modifier: 'admin-card--sand' },
-  { value: '124', label: 'En Tránsito', modifier: 'admin-card--blue' },
-  { value: '980', label: 'Entregados', modifier: 'admin-card--green' },
-  { value: '12', label: 'Retrasados', modifier: 'admin-card--amber' },
-  { value: '4', label: 'Sin recibir', modifier: 'admin-card--rose' }
-];
 
 const chartValues = [
   { label: 'Ene', height: '92%', accent: '#66a67d' },
@@ -37,7 +29,59 @@ const timeline = [
 ];
 
 const DashboardPage = () => {
-  const { user } = useAuth();
+  const { user, token } = useAuth();
+  const [stats, setStats] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const BASE_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:8080/api';
+
+  // Estados a consultar con sus configuraciones
+  const estadosConfig = [
+    { estado: 'RECOLECTADO', label: 'Por entregar', modifier: 'admin-card--sand' },
+    { estado: 'EN_TRANSITO', label: 'En Tránsito', modifier: 'admin-card--blue' },
+    { estado: 'ENTREGADO', label: 'Entregados', modifier: 'admin-card--green' },
+    { estado: 'RETRASADO', label: 'Retrasados', modifier: 'admin-card--amber' },
+    { estado: 'CANCELADO', label: 'Sin recibir', modifier: 'admin-card--rose' }
+  ];
+
+  useEffect(() => {
+    const fetchStats = async () => {
+      setLoading(true);
+      try {
+        const statsData = await Promise.all(
+          estadosConfig.map(async ({ estado, label, modifier }) => {
+            try {
+              const resp = await fetch(`${BASE_URL}/paquetes/estado/${estado}`, {
+                method: 'GET',
+                headers: {
+                  'Content-Type': 'application/json',
+                  Authorization: `Bearer ${token}`,
+                },
+              });
+              if (!resp.ok) throw new Error(`Error fetching ${estado}`);
+              const apiResp = await resp.json();
+              return {
+                value: String(apiResp.data || 0),
+                label,
+                modifier,
+              };
+            } catch (err) {
+              console.error(`Error fetching ${estado}:`, err);
+              return { value: '0', label, modifier };
+            }
+          })
+        );
+        setStats(statsData);
+      } catch (err) {
+        console.error('Error fetching stats:', err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    if (token) {
+      fetchStats();
+    }
+  }, [token]);
 
   return (
     <div className="admin-shell">
@@ -45,12 +89,16 @@ const DashboardPage = () => {
       <div className="admin-layout">
         <div className="admin-layout__inner">
             <div className="admin-stats-grid">
-              {stats.map((stat) => (
-                <article key={stat.label} className={`admin-card ${stat.modifier}`}>
-                  <h2>{stat.value}</h2>
-                  <span>{stat.label}</span>
-                </article>
-              ))}
+              {loading ? (
+                <p style={{ gridColumn: '1 / -1', textAlign: 'center' }}>Cargando estadísticas...</p>
+              ) : (
+                stats.map((stat) => (
+                  <article key={stat.label} className={`admin-card ${stat.modifier}`}>
+                    <h2>{stat.value}</h2>
+                    <span>{stat.label}</span>
+                  </article>
+                ))
+              )}
             </div>
 
             <div className="admin-content-grid">
