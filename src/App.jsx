@@ -12,6 +12,7 @@ function App() {
   const isAuthPath = pathname.startsWith('/auth');
   const isAdminPath = pathname.startsWith('/admin');
   const isEmployeePath = pathname.startsWith('/employee');
+  const isClientPath = pathname.startsWith('/client');
 
   useEffect(() => {
     const body = document.body;
@@ -20,7 +21,7 @@ function App() {
     } else {
       body.classList.remove('auth-body');
     }
-    if (isAdminPath) {
+    if (isAdminPath || isEmployeePath || isClientPath) {
       body.classList.add('admin-body');
     } else {
       body.classList.remove('admin-body');
@@ -29,7 +30,7 @@ function App() {
       body.classList.remove('auth-body');
       body.classList.remove('admin-body');
     };
-  }, [isAdminPath, isAuthPath]);
+  }, [isAdminPath, isEmployeePath, isClientPath, isAuthPath]);
 
   const pageClasses = ['page', transitioning ? 'transitioning' : null, isAuthPath ? 'auth-shell' : null]
     .filter(Boolean)
@@ -40,7 +41,7 @@ function App() {
       <div className={pageClasses}>
         {isAuthPath ? (
           <AppRouter />
-        ) : isAdminPath || isEmployeePath ? (
+        ) : isAdminPath || isEmployeePath || isClientPath ? (
           <AppRouter />
         ) : (
           <MainLayout header={<GlobalHeader />}>

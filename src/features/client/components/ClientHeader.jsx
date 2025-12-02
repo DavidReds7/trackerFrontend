@@ -3,16 +3,13 @@ import { NavLink } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
 
 const navItems = [
-    { label: "Dashboard", to: "/employee" },
-    { label: "Paquetes", to: "/employee/packages" },
-    { label: "Mi Perfil", to: "/employee/profile" },
+    { label: "Paquetes", to: "/client/packages" },
+    { label: "Mi Perfil", to: "/client/profile" },
 ];
 
-const EmployeeHeader = () => {
+const ClientHeader = () => {
     const { logout } = useAuth();
-
     const [pendingLogout, setPendingLogout] = useState(false);
-
     const handleLogoutClick = () => setPendingLogout(true);
     const cancelLogout = () => setPendingLogout(false);
 
@@ -84,4 +81,4 @@ const EmployeeHeader = () => {
     );
 };
 
-export default EmployeeHeader;
+export default ClientHeader;

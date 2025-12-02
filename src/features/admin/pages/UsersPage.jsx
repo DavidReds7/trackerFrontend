@@ -63,9 +63,8 @@ const UsersPage = () => {
 
       const apiResp = await response.json();
       if (apiResp && apiResp.data) {
-        // Filtrar solo EMPLEADO y ADMINISTRADOR
         const filtered = apiResp.data.filter(
-          (u) => u.rol === 'EMPLEADO' || u.rol === 'ADMINISTRADOR'
+          (u) => u.rol === 'EMPLEADO'
         );
         setUsers(filtered);
         setFilteredUsers(filtered);
@@ -77,7 +76,6 @@ const UsersPage = () => {
     }
   };
 
-  // Filtrar usuarios por búsqueda
   useEffect(() => {
     if (searchTerm.trim() === '') {
       setFilteredUsers(users);
@@ -129,7 +127,6 @@ const UsersPage = () => {
       }
 
       const apiResp = await response.json();
-      // Indicar éxito y limpiar formulario
       setFormSuccess('Usuario creado exitosamente');
       setFormData({
         email: '',
@@ -139,9 +136,7 @@ const UsersPage = () => {
         apellidoMaterno: ''
       });
       setShowForm(false);
-      // Mostrar modal de éxito
       setShowSuccess(true);
-      // Actualizar lista inmediatamente
       fetchUsers();
     } catch (err) {
       setFormError(err.message || 'Error al crear usuario');
@@ -423,7 +418,6 @@ const UsersPage = () => {
               <p className="no-users-message">No hay usuarios para mostrar</p>
             )}
 
-            {/* Confirmation modal for activate/deactivate */}
             {pendingToggle && (
               <div className="confirm-overlay" role="dialog" aria-modal="true" aria-label="Confirmación">
                 <div className="confirm-modal">
@@ -443,7 +437,6 @@ const UsersPage = () => {
               </div>
             )}
 
-            {/* User Details Modal */}
             {selectedUser && userDetails && (
               <div className="details-overlay" role="dialog" aria-modal="true" aria-label="Información del empleado">
                 <div className="details-modal">
@@ -565,7 +558,6 @@ const UsersPage = () => {
               </div>
             )}
 
-            {/* Confirmation Modal for Edit */}
             {pendingEdit && (
               <div className="confirm-overlay" role="dialog" aria-modal="true" aria-label="Confirmación">
                 <div className="confirm-modal">

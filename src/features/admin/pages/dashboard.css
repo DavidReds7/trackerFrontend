@@ -74,21 +74,11 @@
   box-shadow: 0 10px 25px rgba(16, 82, 43, 0.45);
 }
 
-.admin-content {
-  max-width: 1100px;
-  margin: 0 auto;
-  padding: 2rem clamp(1rem, 2vw, 2rem) 3rem;
-  display: flex;
-  flex-direction: column;
-  gap: 1.5rem;
-  background: var(--admin-bg);
-  border-radius: 32px 32px 0 0;
-}
-
 .admin-stats-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
   gap: 1rem;
+  padding: 1.75rem clamp(1rem, 3vw, 3rem);
 }
 
 .admin-card {
@@ -135,6 +125,11 @@
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
   gap: 1.5rem;
+  padding: 1.75rem clamp(1rem, 3vw, 3rem);
+}
+
+.admin-table {
+  padding: 1.75rem clamp(1rem, 3vw, 3rem);
 }
 
 .admin-panel {

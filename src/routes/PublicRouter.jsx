@@ -3,7 +3,7 @@ import { Navigate, Outlet, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 
 const mapRoleToPath = (rol) => {
-  if (!rol) return '/admin'; // fallback
+  if (!rol) return '/login';
   const normalized = String(rol).toUpperCase();
   switch (normalized) {
     case 'ADMINISTRADOR':
@@ -11,8 +11,7 @@ const mapRoleToPath = (rol) => {
     case 'EMPLEADO':
       return '/employee';
     case 'CLIENTE':
-    case 'CLIENT':
-      return '/admin'; // no client dashboard yet — send to admin/profile as fallback
+      return '/client/packages';
     default:
       return '/admin';
   }

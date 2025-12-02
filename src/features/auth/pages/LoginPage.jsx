@@ -37,7 +37,12 @@ const LoginPage = () => {
         setStatus('Acceso concedido. Redirigiendo...');
         // Redirigir según rol
         const rol = resp.rol || (user && user.rol) || null;
-        const path = rol === 'EMPLEADO' ? '/employee' : '/admin';
+        let path = '/admin'; // default para ADMINISTRADOR
+        if (rol === 'EMPLEADO') {
+          path = '/employee';
+        } else if (rol === 'CLIENTE') {
+          path = '/client/packages';
+        }
         navigate(path);
         return;
       }

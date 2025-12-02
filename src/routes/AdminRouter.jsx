@@ -10,9 +10,8 @@ const AdminRouter = () => {
     return <Navigate to="/auth/login" state={{ from: location }} replace />;
   }
 
-  // Solo administradores pueden acceder a rutas /admin
   if (user && user.rol !== 'ADMINISTRADOR') {
-    return <Navigate to="/employee" replace />;
+    return <Navigate to="/auth/login" replace />;
   }
 
   return <Outlet />;

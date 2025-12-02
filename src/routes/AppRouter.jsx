@@ -14,6 +14,10 @@ import PublicRouter from './PublicRouter';
 import AdminRouter from './AdminRouter';
 import EmployeeRouter from './EmployeeRouter';
 import Package from '../features/employee/pages/Package';
+import EmployeeProfile from '../features/employee/pages/EmployeeProfile';
+import ClientRouter from './ClientRouter';
+import ClientPackages from '../features/client/pages/ClientPackages';
+import ClientProfile from '../features/client/pages/ClientProfile';
 
 const NotFoundPage = () => (
   <section>
@@ -40,7 +44,13 @@ function AppRouter() {
       </Route>
       <Route element={<EmployeeRouter />}>
         <Route path="/employee" element={<EmployeeDashboard />} />
-        <Route path="/employee/paquetes" element={<Package />} />
+        <Route path="/employee/packages" element={<Package />} />
+        <Route path="/employee/profile" element={<EmployeeProfile />} />
+      </Route>
+      <Route element={<ClientRouter />}>
+        <Route path="/client" element={<Navigate to="/client/packages" replace />} />
+        <Route path="/client/packages" element={<ClientPackages />} />
+        <Route path="/client/profile" element={<ClientProfile />} />
       </Route>
       <Route path="*" element={<NotFoundPage />} />
     </Routes>

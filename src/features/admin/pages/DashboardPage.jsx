@@ -44,7 +44,6 @@ const DashboardPage = () => {
       <AdminHeader />
       <div className="admin-layout">
         <div className="admin-layout__inner">
-          <div className="admin-content">
             <div className="admin-stats-grid">
               {stats.map((stat) => (
                 <article key={stat.label} className={`admin-card ${stat.modifier}`}>
@@ -81,6 +80,7 @@ const DashboardPage = () => {
               </article>
             </div>
 
+          <div className="admin-table">
             <section className="admin-panel admin-panel--table">
               <h3>Últimas 10 actualizaciones de paquetes</h3>
               <table>
