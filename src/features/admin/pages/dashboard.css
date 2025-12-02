@@ -167,15 +167,17 @@
   display: flex;
   align-items: flex-end;
   gap: 1rem;
-  height: 180px;
+  height: 240px;
   padding-top: 1rem;
 }
 
 .chart-bars div {
   flex: 1;
   border-radius: 12px;
-  background: rgba(16, 82, 43, 0.15);
   position: relative;
+  min-height: 150px;
+  display: flex;
+  align-items: flex-end;
 }
 
 .chart-bars div::after {
@@ -191,10 +193,13 @@
 .chart-bars div span {
   position: absolute;
   bottom: 0;
-  left: 0;
-  right: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 60%;
+  min-width: 30px;
   border-radius: 12px;
   background: linear-gradient(180deg, #5a9b4a, #2f5e33);
+  display: block;
 }
 
 .admin-panel--activity ul {
@@ -241,4 +246,3 @@
   background: #e1e7ed;
   color: #2d3b44;
 }
-

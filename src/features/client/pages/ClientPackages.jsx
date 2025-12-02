@@ -243,7 +243,7 @@ export default function ClientPackages() {
                         type="button"
                         className={
                           typeof pnum === 'number'
-                            ? (pnum === page ? 'btn-add-user pill-btn pill-btn--primary' : 'btn-cancel pill-btn pill-btn--neutral')
+                            ? (pnum === page ? 'btn-next pill-btn pill-btn--primary' : 'btn-cancel pill-btn pill-btn--neutral')
                             : 'btn-cancel pill-btn pill-btn--neutral'
                         }
                         onClick={() => typeof pnum === 'number' && gotoPage(pnum)}
@@ -255,7 +255,7 @@ export default function ClientPackages() {
                     ))}
                   </div>
                   <button
-                    className="btn-add-user pill-btn pill-btn--primary"
+                    className="btn-next pill-btn pill-btn--neutral"
                     type="button"
                     onClick={() => gotoPage(page + 1)}
                     disabled={!canNext}

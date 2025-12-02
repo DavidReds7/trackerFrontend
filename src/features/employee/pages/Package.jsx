@@ -4,7 +4,7 @@ import '@/features/admin/pages/admin-layout.css';
 import '@/features/admin/pages/users.css';
 import { useAuth } from '@/context/AuthContext';
 import { createPackage } from '@/api/packageService';
-import { FiEye } from 'react-icons/fi';
+import { FiRefreshCw } from 'react-icons/fi';
 
 export default function Package() {
     const { token } = useAuth();
@@ -20,9 +20,19 @@ export default function Package() {
     const [formData, setFormData] = useState({
         descripcion: '',
         clienteEmail: '',
-        direccionOrigen: '',
         direccionDestino: '',
     });
+    const [clients, setClients] = useState([]);
+    const [estadoFilter, setEstadoFilter] = useState('');
+    const [showMovement, setShowMovement] = useState(false);
+    const [movementData, setMovementData] = useState({
+        paqueteId: '',
+        estado: '',
+        ubicacion: '',
+        observaciones: '',
+    });
+    const [movementError, setMovementError] = useState(null);
+    const [movementSuccess, setMovementSuccess] = useState(null);
     const BASE_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:8080/api';
 
     const handleChange = (e) => {
@@ -36,11 +46,33 @@ export default function Package() {
         setFormSuccess(null);
 
         try {
-            await createPackage(formData, token);
+            // Obtener empleadoId desde localStorage
+            const user = JSON.parse(localStorage.getItem('user') || '{}');
+            const empleadoId = user.id;
+
+            if (!empleadoId) {
+                throw new Error('No se encontró el ID del empleado en localStorage');
+            }
+
+            // Construir payload según nuevo esquema: ubicacion = direccionDestino
+            const payload = {
+                descripcion: formData.descripcion,
+                clienteEmail: formData.clienteEmail,
+                direccionDestino: formData.direccionDestino,
+                empleadoId,
+                ubicacion: formData.direccionDestino,
+            };
+
+            await createPackage(payload, token);
             setFormSuccess("Paquete registrado correctamente");
-            setFormData({ descripcion: "", clienteEmail: "", direccionOrigen: "", direccionDestino: "" });
-            setShowForm(false);
-            fetchPackages();
+
+            setTimeout(() => {
+                setFormData({ descripcion: "", clienteEmail: "", direccionDestino: "" });
+                setShowForm(false);
+                setFormSuccess(null);
+                fetchPackages();
+            }, 2000);
+
         } catch (err) {
             setFormError(err.message || 'Error al crear el paquete');
         }
@@ -49,6 +81,31 @@ export default function Package() {
 
     useEffect(() => {
         if (token) fetchPackages();
+    }, [token]);
+
+    // Cargar lista de clientes (solo emails) para el select
+    useEffect(() => {
+        const fetchClients = async () => {
+            try {
+                const resp = await fetch(`${BASE_URL}/usuarios/rol/CLIENTE`, {
+                    method: 'GET',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        Authorization: `Bearer ${token}`,
+                    },
+                });
+                if (!resp.ok) throw new Error('No se pudieron cargar los clientes');
+                const apiResp = await resp.json();
+                const data = apiResp && apiResp.data ? apiResp.data : apiResp;
+                const emails = Array.isArray(data) ? data.map((u) => u.email).filter(Boolean) : [];
+                setClients(emails);
+            } catch (err) {
+                console.error('Error cargando clients:', err);
+                setClients([]);
+            }
+        };
+
+        if (token) fetchClients();
     }, [token]);
 
     const fetchPackages = async () => {
@@ -62,7 +119,10 @@ export default function Package() {
                 throw new Error('No se encontró el ID del empleado');
             }
 
-            const resp = await fetch(`${BASE_URL}/paquetes/empleado/${empleadoId}`, {
+            // 🌟 CAMBIO CLAVE AQUÍ: Usar el parámetro de consulta ?empleadoId=
+            const url = `${BASE_URL}/paquetes/empleado?empleadoId=${empleadoId}`;
+
+            const resp = await fetch(url, {
                 method: 'GET',
                 headers: {
                     'Content-Type': 'application/json',
@@ -83,18 +143,21 @@ export default function Package() {
     };
 
     useEffect(() => {
-        if (!searchTerm.trim()) {
-            setFiltered(packages);
-            return;
-        }
-        const term = searchTerm.toLowerCase();
+        const term = searchTerm.trim().toLowerCase();
         setFiltered(
-            packages.filter(
-                (p) =>
+            packages.filter((p) => {
+                if (estadoFilter && String(p.estado || '').toUpperCase() !== String(estadoFilter).toUpperCase()) {
+                    return false;
+                }
+
+                if (!term) return true;
+
+                return (
                     String(p.codigoQR || p.guiaTracking || p.guia_numero || '').toLowerCase().includes(term)
-            )
+                );
+            })
         );
-    }, [searchTerm, packages]);
+    }, [searchTerm, packages, estadoFilter]);
 
     const handleView = async (pkgId) => {
         setSelected(pkgId);
@@ -115,6 +178,63 @@ export default function Package() {
         }
     };
 
+    const handleOpenMovement = (pkgId, currentEstado) => {
+        setMovementData({
+            paqueteId: pkgId,
+            estado: currentEstado,
+            ubicacion: '',
+            observaciones: '',
+        });
+        setShowMovement(true);
+        setMovementError(null);
+        setMovementSuccess(null);
+    };
+
+    const handleMovementChange = (e) => {
+        const { name, value } = e.target;
+        setMovementData((prev) => ({ ...prev, [name]: value }));
+    };
+
+    const handleCreateMovement = async (e) => {
+        e.preventDefault();
+        setMovementError(null);
+        setMovementSuccess(null);
+
+        try {
+            const resp = await fetch(`${BASE_URL}/movimientos`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    Authorization: `Bearer ${token}`,
+                },
+                body: JSON.stringify({
+                    paqueteId: movementData.paqueteId,
+                    estado: movementData.estado,
+                    ubicacion: movementData.ubicacion,
+                    observaciones: movementData.observaciones,
+                }),
+            });
+
+            if (!resp.ok) throw new Error('No se pudo registrar el movimiento');
+            const apiResp = await resp.json();
+            setMovementSuccess('Movimiento registrado correctamente');
+
+            setTimeout(() => {
+                setMovementData({
+                    paqueteId: '',
+                    estado: '',
+                    ubicacion: '',
+                    observaciones: '',
+                });
+                setShowMovement(false);
+                setMovementSuccess(null);
+                fetchPackages();
+            }, 2000);
+        } catch (err) {
+            setMovementError(err.message || 'Error al registrar movimiento');
+        }
+    };
+
     return (
         <div className="admin-shell">
             <EmployeeHeader />
@@ -129,10 +249,22 @@ export default function Package() {
                             >
                                 Agregar Paquete
                             </button>
-                            <div className="admin-panel__controls">
+                            <div className="admin-panel__controls" style={{display: 'flex', gap: '8px', alignItems: 'center'}}>
+                                <select
+                                    name="estadoFilter"
+                                    value={estadoFilter}
+                                    onChange={(e) => setEstadoFilter(e.target.value)}
+                                    className="search-input"
+                                >
+                                    <option value="">Todos</option>
+                                    <option value="RECOLECTADO">RECOLECTADO</option>
+                                    <option value="EN_TRANSITO">EN_TRANSITO</option>
+                                    <option value="ENTREGADO">ENTREGADO</option>
+                                    <option value="CANCELADO">CANCELADO</option>
+                                </select>
                                 <input
                                     type="text"
-                                    placeholder="Buscador (guía, cliente, estado...)"
+                                    placeholder="Buscador por guía"
                                     value={searchTerm}
                                     onChange={(e) => setSearchTerm(e.target.value)}
                                     className="search-input"
@@ -168,11 +300,11 @@ export default function Package() {
                                                 <button
                                                     type="button"
                                                     className="action-btn action-btn--view"
-                                                    title="Ver"
-                                                    aria-label="Ver paquete"
-                                                    onClick={() => handleView(p.id || p._id || p.guia)}
+                                                    title="Registrar Movimiento"
+                                                    aria-label="Registrar movimiento"
+                                                    onClick={() => handleOpenMovement(p.id || p._id || p.paqueteId, p.estado)}
                                                 >
-                                                    <FiEye />
+                                                    <FiRefreshCw />
                                                 </button>
                                             </td>
                                         </tr>
@@ -214,30 +346,26 @@ export default function Package() {
                                                 </label>
                                                 <label className="auth-form__field">
                                                     <span>Email del Cliente <strong>*</strong></span>
-                                                    <input
-                                                        type="email"
+                                                    <select
                                                         name="clienteEmail"
                                                         value={formData.clienteEmail}
                                                         onChange={handleChange}
-                                                        placeholder="correo@ejemplo.com"
                                                         required
-                                                    />
+                                                    >
+                                                        <option value="">Selecciona un cliente</option>
+                                                        {clients.length === 0 ? (
+                                                            <option value="" disabled>No hay clientes</option>
+                                                        ) : (
+                                                            clients.map((email) => (
+                                                                <option key={email} value={email}>{email}</option>
+                                                            ))
+                                                        )}
+                                                    </select>
                                                 </label>
                                             </div>
 
                                             <div className="form-row">
-                                                <label className="auth-form__field">
-                                                    <span>Dirección Origen <strong>*</strong></span>
-                                                    <input
-                                                        type="text"
-                                                        name="direccionOrigen"
-                                                        value={formData.direccionOrigen}
-                                                        onChange={handleChange}
-                                                        placeholder="Dirección de origen"
-                                                        required
-                                                    />
-                                                </label>
-                                                <label className="auth-form__field">
+                                                <label className="auth-form__field" style={{ width: '100%' }}>
                                                     <span>Dirección Destino <strong>*</strong></span>
                                                     <select
                                                         name="direccionDestino"
@@ -303,6 +431,91 @@ export default function Package() {
                             </div>
                         )}
 
+
+                        {/* Movement modal */}
+                        {showMovement && (
+                            <div className="modal-overlay" role="dialog" aria-modal="true" aria-label="Registrar movimiento">
+                                <div className="modal">
+                                    <header className="modal-header">
+                                        <h3>Registrar Movimiento</h3>
+                                        <button
+                                            type="button"
+                                            className="modal-close"
+                                            onClick={() => setShowMovement(false)}
+                                            aria-label="Cerrar modal"
+                                        >
+                                            ×
+                                        </button>
+                                    </header>
+
+                                    <div className="modal-body">
+                                        <form className="auth-form" onSubmit={handleCreateMovement}>
+                                            <div className="form-row">
+                                                <label className="auth-form__field" style={{ width: '100%' }}>
+                                                    <span>Estado <strong>*</strong></span>
+                                                    <select
+                                                        name="estado"
+                                                        value={movementData.estado}
+                                                        onChange={handleMovementChange}
+                                                        required
+                                                    >
+                                                        <option value="" disabled>Selecciona un estado</option>
+                                                        <option value="RECOLECTADO">RECOLECTADO</option>
+                                                        <option value="EN_TRANSITO">EN_TRANSITO</option>
+                                                        <option value="ENTREGADO">ENTREGADO</option>
+                                                        <option value="CANCELADO">CANCELADO</option>
+                                                    </select>
+                                                </label>
+                                                <label className="auth-form__field" style={{ width: '100%' }}>
+                                                    <span>Ubicación <strong>*</strong></span>
+                                                    <input
+                                                        type="text"
+                                                        name="ubicacion"
+                                                        value={movementData.ubicacion}
+                                                        onChange={handleMovementChange}
+                                                        placeholder="Ingresa la ubicación actual"
+                                                        required
+                                                    />
+                                                </label>
+                                            </div>
+
+                                            
+
+                                            <div >
+                                                <label className="auth-form__field" style={{ width: '100%' }}>
+                                                    <span>Observaciones</span>
+                                                    <textarea
+                                                        className='info-grid'
+                                                        name="observaciones"
+                                                        value={movementData.observaciones}
+                                                        onChange={handleMovementChange}
+                                                        placeholder="Notas adicionales (opcional)"
+                                                        rows="4"
+                                                        
+                                                    />
+                                                </label>
+                                            </div>
+
+                                            {movementError && <p className="form-error">{movementError}</p>}
+                                            {movementSuccess && <p className="form-success">{movementSuccess}</p>}
+
+                                            <div className="modal-actions">
+                                                <button
+                                                    type="button"
+                                                    className="btn-add-user btn-cancel"
+                                                    onClick={() => setShowMovement(false)}
+                                                >
+                                                    Cancelar
+                                                </button>
+                                                <button type="submit" className="btn-add-user">
+                                                    Registrar Movimiento
+                                                </button>
+                                            </div>
+                                        </form>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
 
                         {/* Details modal */}
                         {selected && details && (

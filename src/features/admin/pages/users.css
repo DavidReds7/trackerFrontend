@@ -73,6 +73,21 @@
   box-shadow: 0 0 0 3px rgba(117, 117, 117, 0.15);
 }
 
+.btn-next {
+  background: #3d7949 !important;
+  color: white;
+  border: none;
+}
+
+.btn-next:hover {
+  background: #5f5f5f;
+}
+
+.btn-next:focus {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(117, 117, 117, 0.15);
+}
+
 /* Modal-specific button overrides to beat `.auth-form button` styles */
 .modal .btn-add-user {
   padding: 0.75rem 1.5rem;
