@@ -1,0 +1,23 @@
+:root {
+  --green: #3d7949;
+  --green-hover: #2d5a39;
+  --gray: #e5e7eb;
+  --gray-hover-light: #eef0f3; /* lighter than default */
+}
+
+.pill-btn {
+  border-radius: 9999px;
+  padding: 0.45rem 0.9rem;
+  line-height: 1;
+}
+
+/* Lighter hover specifically for neutral (gray) buttons in pagination */
+.btn-cancel.pill-btn--neutral:hover {
+  background: var(--gray-hover-light);
+}
+
+/* Ensure disabled state keeps rounded style */
+.pill-btn[disabled] {
+  cursor: not-allowed;
+  opacity: 0.7;
+}

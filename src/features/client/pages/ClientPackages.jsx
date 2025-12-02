@@ -1,3 +1,4 @@
+import './client-packages.css';
 import React, { useEffect, useState } from "react";
 import ClientHeader from "../components/ClientHeader";
 import "@/features/admin/pages/admin-layout.css";
@@ -9,6 +10,8 @@ export default function ClientPackages() {
   const { token } = useAuth();
   const [packages, setPackages] = useState([]);
   const [filtered, setFiltered] = useState([]);
+  const [page, setPage] = useState(1);
+  const PAGE_SIZE = 10;
   const [searchTerm, setSearchTerm] = useState("");
   const [loading, setLoading] = useState(false);
   const [selected, setSelected] = useState(null);
@@ -53,6 +56,7 @@ export default function ClientPackages() {
   useEffect(() => {
     if (!searchTerm.trim()) {
       setFiltered(packages);
+      setPage(1);
       return;
     }
     const term = searchTerm.toLowerCase();
@@ -73,7 +77,42 @@ export default function ClientPackages() {
             .includes(term)
       )
     );
+    setPage(1);
   }, [searchTerm, packages]);
+
+  const totalPages = Math.max(1, Math.ceil((filtered?.length || 0) / PAGE_SIZE));
+  const startIdx = (page - 1) * PAGE_SIZE;
+  const pageItems = filtered.slice(startIdx, startIdx + PAGE_SIZE);
+  const canPrev = page > 1;
+  const canNext = page < totalPages;
+  const gotoPage = (p) => {
+    if (p < 1 || p > totalPages) return;
+    setPage(p);
+  };
+
+  const getPageNumbers = () => {
+    const maxChips = 7;
+    const pages = [];
+    if (totalPages <= maxChips) {
+      for (let i = 1; i <= totalPages; i++) pages.push(i);
+      return pages;
+    }
+    let start = Math.max(1, page - 2);
+    let end = Math.min(totalPages, page + 2);
+    if (start <= 2) {
+      start = 1;
+      end = 5;
+    } else if (end >= totalPages - 1) {
+      start = totalPages - 4;
+      end = totalPages;
+    }
+    pages.push(1);
+    if (start > 2) pages.push('…');
+    for (let i = start; i <= end; i++) pages.push(i);
+    if (end < totalPages - 1) pages.push('…');
+    pages.push(totalPages);
+    return pages;
+  };
 
   const handleView = async (pkgId) => {
     setSelected(pkgId);
@@ -116,7 +155,7 @@ export default function ClientPackages() {
         <div className="admin-layout__inner">
           <section className="admin-panel--users">
             <div className="admin-panel__header">
-              <h2>Mis Paquetes</h2>
+              <h1>Mis Paquetes</h1>
               <div className="admin-panel__controls">
                 <input
                   type="text"
@@ -142,7 +181,7 @@ export default function ClientPackages() {
                   </tr>
                 </thead>
                 <tbody>
-                  {filtered.map((p) => (
+                  {pageItems.map((p) => (
                     <tr key={p.id || p._id || p.guia || Math.random()}>
                       <td>{p.codigoQR}</td>
                       <td>
@@ -165,7 +204,6 @@ export default function ClientPackages() {
                         <button
                           type="button"
                           className="action-btn action-btn--view"
-                          title="Ver"
                           aria-label="Ver paquete"
                           onClick={() => handleView(p.id || p._id || p.guia)}
                         >
@@ -180,7 +218,54 @@ export default function ClientPackages() {
               <p className="no-users-message">No hay paquetes para mostrar</p>
             )}
 
-            {/* Details modal */}
+            {filtered && filtered.length > 0 && (
+              <div
+                className="pagination"
+                aria-label="Paginación"
+                style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.75rem' }}
+              >
+                <span style={{ padding: 0 }}>
+                  Página {page} de {totalPages}
+                </span>
+                <div style={{ flex: 1, display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '0.6rem' }}>
+                  <button
+                    className="btn-cancel pill-btn pill-btn--neutral"
+                    type="button"
+                    onClick={() => gotoPage(page - 1)}
+                    disabled={!canPrev}
+                  >
+                    Anterior
+                  </button>
+                  <div className="page-chips" role="group" aria-label="Seleccionar página" style={{ display: 'inline-flex', gap: '0.4rem' }}>
+                    {getPageNumbers().map((pnum, idx) => (
+                      <button
+                        key={`${pnum}-${idx}`}
+                        type="button"
+                        className={
+                          typeof pnum === 'number'
+                            ? (pnum === page ? 'btn-add-user pill-btn pill-btn--primary' : 'btn-cancel pill-btn pill-btn--neutral')
+                            : 'btn-cancel pill-btn pill-btn--neutral'
+                        }
+                        onClick={() => typeof pnum === 'number' && gotoPage(pnum)}
+                        disabled={pnum === '…'}
+                        aria-current={pnum === page ? 'page' : undefined}
+                      >
+                        {pnum}
+                      </button>
+                    ))}
+                  </div>
+                  <button
+                    className="btn-add-user pill-btn pill-btn--primary"
+                    type="button"
+                    onClick={() => gotoPage(page + 1)}
+                    disabled={!canNext}
+                  >
+                    Siguiente
+                  </button>
+                </div>
+              </div>
+            )}
+
             {selected && details && (
               <div
                 className="details-overlay"

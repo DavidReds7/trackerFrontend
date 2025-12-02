@@ -179,7 +179,6 @@
   background: #d1d5db;
 }
 
-/* Danger (red) for destructive actions like logout */
 .confirm-modal .btn-danger {
   background: #dc2626;
   color: #fff;
