@@ -44,12 +44,52 @@ export default function ClientPackages() {
       if (!resp.ok) throw new Error("No se pudieron cargar los paquetes");
       const apiResp = await resp.json();
       const data = apiResp && apiResp.data ? apiResp.data : apiResp;
-      setPackages(data || []);
-      setFiltered(data || []);
+      const baseList = Array.isArray(data) ? data : [];
+
+      const enriched = await enrichWithMovimientos(baseList);
+      setPackages(enriched);
+      setFiltered(enriched);
     } catch (err) {
       console.error("Error cargando paquetes:", err);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const enrichWithMovimientos = async (list) => {
+    try {
+      const results = await Promise.all(
+        list.map(async (p) => {
+          const pkgId = p.id || p._id || p.guia || p.codigoQR;
+          if (!pkgId) return p;
+          try {
+            const resp = await fetch(`${BASE_URL}/movimientos/paquete/${pkgId}`, {
+              method: 'GET',
+              headers: {
+                'Content-Type': 'application/json',
+                Authorization: `Bearer ${token}`,
+              },
+            });
+            if (!resp.ok) return p;
+            const api = await resp.json();
+            const movimientos = api && api.data ? api.data : api;
+            const first = Array.isArray(movimientos) && movimientos.length > 0 ? movimientos[0] : null;
+            if (!first) return p;
+            return {
+              ...p,
+              ubicacion: first.ubicacion || p.ubicacion,
+              repartidorNombre: first.empleadoNombre || p.repartidorNombre || p.nombreRepartidor,
+              fechaUltimaActualizacion: first.fechaHora || p.fechaUltimaActualizacion,
+              estado: first.estado || p.estado,
+            };
+          } catch {
+            return p;
+          }
+        })
+      );
+      return results;
+    } catch {
+      return list;
     }
   };
 
@@ -64,15 +104,6 @@ export default function ClientPackages() {
       packages.filter(
         (p) =>
           String(p.codigoQR || "")
-            .toLowerCase()
-            .includes(term) ||
-          String(p.clienteEmail || "")
-            .toLowerCase()
-            .includes(term) ||
-          String(p.estado || "")
-            .toLowerCase()
-            .includes(term) ||
-          String(p.ubicacion || p.ultimaUbicacion || "")
             .toLowerCase()
             .includes(term)
       )
@@ -148,6 +179,21 @@ export default function ClientPackages() {
     }
   };
 
+  const formatTimestamp = (ts) => {
+    try {
+      if (!ts) return '-';
+      if (typeof ts === 'object' && ts.seconds != null) {
+        const ms = ts.seconds * 1000 + Math.floor((ts.nanos || 0) / 1_000_000);
+        return new Date(ms).toLocaleString();
+      }
+      const d = new Date(ts);
+      if (isNaN(d.getTime())) return '-';
+      return d.toLocaleString();
+    } catch {
+      return '-';
+    }
+  };
+
   return (
     <div className="admin-shell">
       <ClientHeader />
@@ -174,23 +220,21 @@ export default function ClientPackages() {
                 <thead>
                   <tr>
                     <th>Guía</th>
-                    <th>Cliente</th>
+                    <th>Repartidor</th>
                     <th>Estado</th>
                     <th>Ubicación</th>
+                    <th>Última Actualización</th>
                     <th>Acciones</th>
                   </tr>
                 </thead>
                 <tbody>
                   {pageItems.map((p) => (
-                    <tr key={p.id || p._id || p.guia || Math.random()}>
+                    <tr key={p.id}>
                       <td>{p.codigoQR}</td>
                       <td>
-                        {p.clienteEmail || "-"}
-                        {p.clienteEmail && p.clienteEmail.includes("@") && " "}
-                        {(p.cliente &&
-                          (p.cliente.nombre || p.cliente)) ||
-                          p.nombreCliente ||
-                          ""}
+                        {(p.repartidor && (p.repartidor.nombre || p.repartidor)) ||
+                          p.repartidorNombre || p.nombreRepartidor || p.empleadoNombre ||
+                          p.repartidorEmail || p.empleadoEmail || "-"}
                       </td>
                       <td>
                         <span
@@ -200,6 +244,7 @@ export default function ClientPackages() {
                         </span>
                       </td>
                       <td>{p.ubicacion || p.ultimaUbicacion || ""}</td>
+                      <td>{formatTimestamp(p.fechaUltimaActualizacion)}</td>
                       <td className="actions-cell">
                         <button
                           type="button"
@@ -326,10 +371,7 @@ export default function ClientPackages() {
                         <div className="info-row">
                           <label>Última actualización</label>
                           <span>
-                            {details.updatedAt ||
-                              details.actualizado ||
-                              details.fecha ||
-                              "-"}
+                            {details.fechaUltimaActualizacion}
                           </span>
                         </div>
                       </div>
