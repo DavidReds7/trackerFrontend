@@ -16,7 +16,6 @@ const ProfilePage = () => {
   const [toast, setToast] = useState({ type: null, message: "" });
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [satisfaction, setSatisfaction] = useState(null);
-  const [satisfactionData, setSatisfactionData] = useState(null);
 
   useEffect(() => {
     setFormData({
@@ -30,24 +29,17 @@ const ProfilePage = () => {
   useEffect(() => {
     const fetchSatisfaction = async () => {
       try {
-        const BASE_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:8080/api';
-        const res = await fetch(`${BASE_URL}/paquetes/satisfaccion`, {
+        const res = await fetch("http://localhost:8080/api/paquetes/satisfaccion", {
           headers: {
-            'Content-Type': 'application/json',
             ...(token ? { Authorization: `Bearer ${token}` } : {}),
           },
         });
-        if (!res.ok) throw new Error('No se pudo obtener la satisfacción');
-        const apiResp = await res.json();
-        const data = apiResp && apiResp.data ? apiResp.data : apiResp;
-        const indiceCumplimiento = data?.indiceCumplimiento ?? 0;
-        setSatisfactionData(data);
-        setSatisfaction(Math.round(indiceCumplimiento));
-        console.log('Satisfacción admin - data:', data, 'indice:', indiceCumplimiento);
+        if (!res.ok) throw new Error("No se pudo obtener la satisfacción");
+        const data = await res.json();
+        const value = typeof data === "number" ? data : data.porcentaje ?? 0;
+        setSatisfaction(Math.round(value));
       } catch (e) {
-        console.error('Error fetching admin satisfaction:', e);
         setSatisfaction(0);
-        setSatisfactionData(null);
       }
     };
     fetchSatisfaction();
@@ -135,7 +127,7 @@ const ProfilePage = () => {
           </div>
           <div className="profile-hero__stats">
             <div>
-              <strong>{satisfactionData ? `${Math.round(satisfactionData.indiceCumplimiento)}%` : '...'}</strong>
+              <strong>{satisfaction !== null ? `${satisfaction}%` : '...'}</strong>
               <span>Índice de cumplimiento</span>
             </div>
           </div>

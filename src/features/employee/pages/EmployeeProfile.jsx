@@ -17,7 +17,6 @@ const EmployeeProfile = () => {
   const [toast, setToast] = useState({ type: null, message: '' });
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [satisfaction, setSatisfaction] = useState(null);
-  const [satisfactionData, setSatisfactionData] = useState(null);
 
   useEffect(() => {
     setFormData({
@@ -30,40 +29,26 @@ const EmployeeProfile = () => {
 
   useEffect(() => {
     const fetchSatisfaction = async () => {
+      if (!user?.id) return;
       try {
-        const userObj = JSON.parse(localStorage.getItem('user') || '{}');
-        const empleadoId = userObj.id;
-
-        if (!empleadoId) {
-          setSatisfaction(0);
-          return;
-        }
-
-        const BASE_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:8080/api';
         const res = await fetch(
-          `${BASE_URL}/paquetes/satisfaccion/repartidor/${empleadoId}`,
+          `http://localhost:8080/api/paquetes/satisfaccion/repartidor/${user.id}`,
           {
             headers: {
-              'Content-Type': 'application/json',
               ...(token ? { Authorization: `Bearer ${token}` } : {}),
             },
           }
         );
         if (!res.ok) throw new Error('No se pudo obtener la satisfacción');
-        const apiResp = await res.json();
-        const data = apiResp && apiResp.data ? apiResp.data : apiResp;
-        const indiceCumplimiento = data?.indiceCumplimiento ?? 0;
-        setSatisfactionData(data);
-        setSatisfaction(Math.round(indiceCumplimiento));
-        console.log('Data recibida:', data, 'Índice:', indiceCumplimiento);
+        const data = await res.json();
+        const value = typeof data === 'number' ? data : data.porcentaje ?? 0;
+        setSatisfaction(Math.round(value));
       } catch (e) {
-        console.error('Error fetching satisfaction:', e);
         setSatisfaction(0);
-        setSatisfactionData(null);
       }
     };
     fetchSatisfaction();
-  }, [token]);
+  }, [user?.id, token]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -140,7 +125,7 @@ const EmployeeProfile = () => {
           </div>
           <div className="profile-hero__stats">
             <div>
-              <strong>{satisfactionData ? `${Math.round(satisfactionData.indiceCumplimiento)}%` : '...'}</strong>
+              <strong>{satisfaction !== null ? `${satisfaction}%` : '...'}</strong>
               <span>Índice de cumplimiento</span>
             </div>
           </div>
