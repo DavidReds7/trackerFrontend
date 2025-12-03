@@ -418,6 +418,37 @@
   color: #7f1d1d;
 }
 
+/* Estado-specific badge colors */
+.status-recolectado {
+  background: #dbeafe;
+  color: #0c4a6e;
+  font-weight: 600;
+}
+
+.status-en_transito {
+  background: #fef3c7;
+  color: #92400e;
+  font-weight: 600;
+}
+
+.status-entregado {
+  background: #d1fae5;
+  color: #064e3b;
+  font-weight: 600;
+}
+
+.status-cancelado {
+  background: #fee2e2;
+  color: #7f1d1d;
+  font-weight: 600;
+}
+
+.status-retrasado {
+  background: #fed7aa;
+  color: #92400e;
+  font-weight: 600;
+}
+
 /* User Form */
 .user-form {
   background: #f9fafb;

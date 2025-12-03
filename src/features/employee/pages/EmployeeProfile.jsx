@@ -17,6 +17,7 @@ const EmployeeProfile = () => {
   const [toast, setToast] = useState({ type: null, message: '' });
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [satisfaction, setSatisfaction] = useState(null);
+  const [satisfactionData, setSatisfactionData] = useState(null);
 
   useEffect(() => {
     setFormData({
@@ -29,26 +30,39 @@ const EmployeeProfile = () => {
 
   useEffect(() => {
     const fetchSatisfaction = async () => {
-      if (!user?.id) return;
       try {
-        const res = await fetch(
-          `http://localhost:8080/api/paquetes/satisfaccion/repartidor/${user.id}`,
-          {
-            headers: {
-              ...(token ? { Authorization: `Bearer ${token}` } : {}),
-            },
-          }
-        );
+        const userObj = JSON.parse(localStorage.getItem('user') || '{}');
+        const empleadoId = userObj.id || user?.id;
+
+        if (!empleadoId) {
+          setSatisfaction(0);
+          setSatisfactionData(null);
+          return;
+        }
+
+        const BASE_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:8080/api';
+        const res = await fetch(`${BASE_URL}/paquetes/satisfaccion/repartidor/${empleadoId}`, {
+          headers: {
+            'Content-Type': 'application/json',
+            ...(token ? { Authorization: `Bearer ${token}` } : {}),
+          },
+        });
+
         if (!res.ok) throw new Error('No se pudo obtener la satisfacción');
-        const data = await res.json();
-        const value = typeof data === 'number' ? data : data.porcentaje ?? 0;
-        setSatisfaction(Math.round(value));
+        const apiResp = await res.json();
+        const data = apiResp && apiResp.data ? apiResp.data : apiResp;
+        const indiceCumplimiento = data?.indiceCumplimiento ?? 0;
+        setSatisfactionData(data);
+        setSatisfaction(Math.round(indiceCumplimiento));
+        console.log('Satisfacción repartidor - data:', data, 'indice:', indiceCumplimiento);
       } catch (e) {
+        console.error('Error fetching satisfaction for repartidor:', e);
         setSatisfaction(0);
+        setSatisfactionData(null);
       }
     };
     fetchSatisfaction();
-  }, [user?.id, token]);
+  }, [token, user]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -125,7 +139,7 @@ const EmployeeProfile = () => {
           </div>
           <div className="profile-hero__stats">
             <div>
-              <strong>{satisfaction !== null ? `${satisfaction}%` : '...'}</strong>
+              <strong>{satisfactionData ? `${Math.round(satisfactionData.indiceCumplimiento)}%` : (satisfaction !== null ? `${satisfaction}%` : '...')}</strong>
               <span>Índice de cumplimiento</span>
             </div>
           </div>
