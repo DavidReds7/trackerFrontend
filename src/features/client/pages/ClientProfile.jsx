@@ -15,7 +15,9 @@ const ClientProfile = () => {
   });
   const [toast, setToast] = useState({ type: null, message: "" });
   const [confirmOpen, setConfirmOpen] = useState(false);
-  const [satisfaction, setSatisfaction] = useState(null);
+  const [satisfactionData, setSatisfactionData] = useState(null);
+
+  const BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:8080/api";
 
   useEffect(() => {
     setFormData({
@@ -26,12 +28,19 @@ const ClientProfile = () => {
     });
   }, [user]);
 
+  const getSatisfactionMessage = (percentage) => {
+    if (percentage >= 80) return "🎉 Excelente";
+    if (percentage >= 60) return "✅ Buen cumplimiento";
+    if (percentage >= 40) return "⚠️ Aceptable";
+    return "❌ Necesita mejorar";
+  };
+
   useEffect(() => {
     const fetchSatisfaction = async () => {
       if (!user?.id) return;
       try {
         const res = await fetch(
-          `http://localhost:8080/api/paquetes/satisfaccion/cliente/${user.id}`,
+          `${BASE_URL}/paquetes/satisfaccion/cliente/${user.id}`,
           {
             headers: {
               ...(token ? { Authorization: `Bearer ${token}` } : {}),
@@ -39,12 +48,11 @@ const ClientProfile = () => {
           }
         );
         if (!res.ok) throw new Error("No se pudo obtener la satisfacción");
-        const data = await res.json();
-        // Expecting either a number (0-100) or { porcentaje: number }
-        const value = typeof data === "number" ? data : data.porcentaje ?? 0;
-        setSatisfaction(Math.round(value));
+        const apiResp = await res.json();
+        setSatisfactionData(apiResp.data || apiResp);
       } catch (e) {
-        setSatisfaction(0);
+        console.error("Error al obtener satisfacción del cliente:", e);
+        setSatisfactionData(null);
       }
     };
     fetchSatisfaction();
@@ -130,10 +138,12 @@ const ClientProfile = () => {
               {user?.apellidoMaterno}
             </p>
           </div>
-          <div className="profile-hero__stats">
-            <strong>{satisfaction !== null ? `${satisfaction}%` : '...'}</strong>
-            <span>Procentaje de paquetes entregados</span>
-          </div>
+          {satisfactionData && (
+            <div className="profile-hero__stats">
+              <strong>{Math.round(satisfactionData.indiceCumplimiento)}%</strong>
+              <span>Índice de satisfacción</span>
+            </div>
+          )}
         </section>
 
         <section className="profile-card">

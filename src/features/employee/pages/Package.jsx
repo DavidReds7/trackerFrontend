@@ -4,7 +4,7 @@ import '@/features/admin/pages/admin-layout.css';
 import '@/features/admin/pages/users.css';
 import { useAuth } from '@/context/AuthContext';
 import { createPackage } from '@/api/packageService';
-import { FiRefreshCw } from 'react-icons/fi';
+import { FiRefreshCw, FiEye } from 'react-icons/fi';
 
 export default function Package() {
     const { token } = useAuth();
@@ -33,6 +33,8 @@ export default function Package() {
     });
     const [movementError, setMovementError] = useState(null);
     const [movementSuccess, setMovementSuccess] = useState(null);
+    const [selectedPackage, setSelectedPackage] = useState(null);
+    const [packageDetails, setPackageDetails] = useState(null);
     const BASE_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:8080/api';
 
     const handleChange = (e) => {
@@ -235,6 +237,40 @@ export default function Package() {
         }
     };
 
+    const handleViewPackageDetails = async (pkgId) => {
+        setSelectedPackage(pkgId);
+        setPackageDetails(null);
+        try {
+            const resp = await fetch(`${BASE_URL}/paquetes/${pkgId}`, {
+                method: 'GET',
+                headers: {
+                    'Content-Type': 'application/json',
+                    Authorization: `Bearer ${token}`
+                }
+            });
+            if (!resp.ok) throw new Error('No se pudo cargar el paquete');
+            const apiResp = await resp.json();
+            setPackageDetails(apiResp.data || apiResp);
+        } catch (err) {
+            console.error('Error al cargar detalles del paquete:', err);
+        }
+    };
+
+    const formatTimestamp = (timestamp) => {
+        if (!timestamp) return '-';
+        
+        // Si es un objeto con seconds y nanos (Firebase Timestamp)
+        if (timestamp.seconds !== undefined) {
+            const date = new Date(timestamp.seconds * 1000);
+            return date.toLocaleString('es-ES');
+        }
+        
+        // Si es una cadena o número
+        const date = new Date(timestamp);
+        if (isNaN(date.getTime())) return '-';
+        return date.toLocaleString('es-ES');
+    };
+
     return (
         <div className="admin-shell">
             <EmployeeHeader />
@@ -299,6 +335,15 @@ export default function Package() {
                                             </td>
                                             <td>{p.ubicacion || p.ultimaUbicacion || '-'}</td>
                                             <td className="actions-cell">
+                                                <button
+                                                    type="button"
+                                                    className="action-btn action-btn--view"
+                                                    title="Ver detalles"
+                                                    aria-label="Ver detalles del paquete"
+                                                    onClick={() => handleViewPackageDetails(p.id || p._id || p.paqueteId)}
+                                                >
+                                                    <FiEye />
+                                                </button>
                                                 <button
                                                     type="button"
                                                     className="action-btn action-btn--view"
@@ -519,36 +564,88 @@ export default function Package() {
                             </div>
                         )}
 
-                        {/* Details modal */}
-                        {selected && details && (
-                            <div className="details-overlay" role="dialog" aria-modal="true" aria-label="Información del paquete">
+                        {/* Package Details Modal */}
+                        {selectedPackage && packageDetails && (
+                            <div className="details-overlay" role="dialog" aria-modal="true" aria-label="Detalles completos del paquete">
                                 <div className="details-modal">
-                                    <button className="success-close" aria-label="Cerrar" onClick={() => { setSelected(null); setDetails(null); }}>×</button>
+                                    <button 
+                                        className="success-close" 
+                                        aria-label="Cerrar detalles del paquete" 
+                                        onClick={() => { setSelectedPackage(null); setPackageDetails(null); }}
+                                    >
+                                        ×
+                                    </button>
                                     <div className="details-content">
-                                        <h2>Detalle Paquete</h2>
+                                        <h2>Detalles Completos del Paquete</h2>
+                                        
                                         <div className="info-section">
+                                            <h3>Información del Paquete</h3>
                                             <div className="info-grid">
                                                 <div className="info-row">
-                                                    <label>Guía</label>
-                                                    <span>{details.guia || details.guiaTracking || details.guia_numero}</span>
+                                                    <label>Código Guía</label>
+                                                    <span>{packageDetails.codigoQR || packageDetails.codigo_qr || '-'}</span>
                                                 </div>
                                                 <div className="info-row">
-                                                    <label>Cliente</label>
-                                                    <span>{(details.cliente && (details.cliente.nombre || details.cliente)) || details.nombreCliente || '-'}</span>
+                                                    <label>Descripción</label>
+                                                    <span>{packageDetails.descripcion || '-'}</span>
                                                 </div>
+                                                <div className="info-row">
+                                                    <label>Email del Cliente</label>
+                                                    <span>{packageDetails.clienteEmail || packageDetails.cliente_email || '-'}</span>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <div className="info-section">
+                                            <h3>Ubicación y Destino</h3>
+                                            <div className="info-grid">
+                                                <div className="info-row">
+                                                    <label>Dirección de Origen</label>
+                                                    <span>{packageDetails.direccionOrigen || packageDetails.direccion_origen || '-'}</span>
+                                                </div>
+                                                <div className="info-row">
+                                                    <label>Dirección de Destino</label>
+                                                    <span>{packageDetails.direccionDestino || packageDetails.direccion_destino || '-'}</span>
+                                                </div>
+                                                <div className="info-row">
+                                                    <label>Ubicación Actual</label>
+                                                    <span>{packageDetails.ubicacion || '-'}</span>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <div className="info-section">
+                                            <h3>Estado y Seguimiento</h3>
+                                            <div className="info-grid">
                                                 <div className="info-row">
                                                     <label>Estado</label>
-                                                    <span className={`status-badge ${details.estado === 'ENTREGADO' ? 'status-active' : 'status-inactive'}`}>
-                                                        {details.estado || '-'}
+                                                    <span className={`status-badge status-${packageDetails.estado?.toLowerCase().replace(/_/g, '_')}`}>
+                                                        {packageDetails.estado || '-'}
                                                     </span>
                                                 </div>
                                                 <div className="info-row">
-                                                    <label>Última ubicación</label>
-                                                    <span>{details.ubicacion || details.ultimaUbicacion || '-'}</span>
+                                                    <label>Confirmado de Recepción</label>
+                                                    <span className={`status-badge ${packageDetails.confirmadoRecepcion ? 'status-entregado' : 'status-en_transito'}`}>
+                                                        {packageDetails.confirmadoRecepcion ? 'Sí' : 'No'}
+                                                    </span>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <div className="info-section">
+                                            <h3>Fechas</h3>
+                                            <div className="info-grid">
+                                                <div className="info-row">
+                                                    <label>Fecha de Creación</label>
+                                                    <span>{formatTimestamp(packageDetails.fechaCreacion)}</span>
                                                 </div>
                                                 <div className="info-row">
-                                                    <label>Última actualización</label>
-                                                    <span>{details.updatedAt || details.actualizado || details.fecha || '-'}</span>
+                                                    <label>Última Actualización</label>
+                                                    <span>{formatTimestamp(packageDetails.fechaUltimaActualizacion)}</span>
+                                                </div>
+                                                <div className="info-row">
+                                                    <label>Fecha de Confirmación de Recepción</label>
+                                                    <span>{formatTimestamp(packageDetails.fechaConfirmacionRecepcion)}</span>
                                                 </div>
                                             </div>
                                         </div>
