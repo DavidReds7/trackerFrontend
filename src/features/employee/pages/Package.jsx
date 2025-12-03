@@ -368,7 +368,7 @@ export default function Package() {
 
                                             <div className="form-row">
                                                 <label className="auth-form__field" style={{ width: '100%' }}>
-                                                    <span>Dirección Destino <strong>*</strong></span>
+                                                    <span>Dirección origen <strong>*</strong></span>
                                                     <select
                                                         name="direccionDestino"
                                                         value={formData.direccionDestino}

@@ -4,21 +4,6 @@ import { useAuth } from '@/context/AuthContext';
 import '@/features/admin/pages/admin-layout.css';
 import EmployeeHeader from '../components/EmployeeHeader';
 
-const chartValues = [
-    { label: 'Ene', height: '88%', accent: '#508960' }, // Alto
-    { label: 'Feb', height: '75%', accent: '#66a67d' }, // Medio-Alto
-    { label: 'Mar', height: '62%', accent: '#8fbba6' }, // Medio
-    { label: 'Abr', height: '52%', accent: '#a6c6b3' }, // Medio-Bajo
-    { label: 'May', height: '40%', accent: '#b4d1c1' }, // Bajo
-    { label: 'Jun', height: '30%', accent: '#c3d5ba' }, // Muy bajo
-    { label: 'Jul', height: '70%', accent: '#73b08b' }, // Repunte
-    { label: 'Ago', height: '85%', accent: '#5c986c' }, // Alto
-    { label: 'Sep', height: '95%', accent: '#477e58' }, // Máximo
-    { label: 'Oct', height: '80%', accent: '#609d73' }, // Alto
-    { label: 'Nov', height: '55%', accent: '#9ebca8' }, // Medio-Bajo
-    { label: 'Dic', height: '90%', accent: '#558f66' }  // Alto
-];
-
 const activity = [
     'Repartidor1 ha actualizado la entrega PKG-00123',
     'Repartidor2 ha generado un nuevo destino',
@@ -39,6 +24,7 @@ const timeline = [
 const EmployeeDashboard = () => {
     const { user, token } = useAuth();
     const [stats, setStats] = useState([]);
+    const [chartValues, setChartValues] = useState([]);
     const [loading, setLoading] = useState(true);
     const BASE_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:8080/api';
 
@@ -51,14 +37,41 @@ const EmployeeDashboard = () => {
         { estado: 'CANCELADO', label: 'Sin recibir', modifier: 'admin-card--rose' }
     ];
 
+    // Meses del año para obtener data por mes
+    const months = [
+        { label: 'Ene', mes: '2024-01' },
+        { label: 'Feb', mes: '2024-02' },
+        { label: 'Mar', mes: '2024-03' },
+        { label: 'Abr', mes: '2024-04' },
+        { label: 'May', mes: '2024-05' },
+        { label: 'Jun', mes: '2024-06' },
+        { label: 'Jul', mes: '2024-07' },
+        { label: 'Ago', mes: '2024-08' },
+        { label: 'Sep', mes: '2024-09' },
+        { label: 'Oct', mes: '2024-10' },
+        { label: 'Nov', mes: '2024-11' },
+        { label: 'Dic', mes: '2024-12' }
+    ];
+
     useEffect(() => {
         const fetchStats = async () => {
             setLoading(true);
             try {
+                // Obtener ID del empleado del localStorage
+                const userObj = JSON.parse(localStorage.getItem('user') || '{}');
+                const empleadoId = userObj.id;
+
+                if (!empleadoId) {
+                    console.error('No se encontró empleadoId en localStorage');
+                    setLoading(false);
+                    return;
+                }
+
+                // Obtener estadísticas generales del empleado
                 const statsData = await Promise.all(
                     estadosConfig.map(async ({ estado, label, modifier }) => {
                         try {
-                            const resp = await fetch(`${BASE_URL}/paquetes/estado/${estado}`, {
+                            const resp = await fetch(`${BASE_URL}/paquetes/empleado?empleadoId=${empleadoId}&estado=${estado}`, {
                                 method: 'GET',
                                 headers: {
                                     'Content-Type': 'application/json',
@@ -67,8 +80,10 @@ const EmployeeDashboard = () => {
                             });
                             if (!resp.ok) throw new Error(`Error fetching ${estado}`);
                             const apiResp = await resp.json();
+                            const data = apiResp.data ? apiResp.data : apiResp;
+                            const count = Array.isArray(data) ? data.length : 0;
                             return {
-                                value: String(apiResp.data || 0),
+                                value: String(count),
                                 label,
                                 modifier,
                             };
@@ -79,6 +94,47 @@ const EmployeeDashboard = () => {
                     })
                 );
                 setStats(statsData);
+
+                // Obtener paquetes por mes para el gráfico (todos los estados)
+                const chartData = await Promise.all(
+                    months.map(async ({ label, mes }) => {
+                        try {
+                            const resp = await fetch(`${BASE_URL}/paquetes/empleado?empleadoId=${empleadoId}&mes=${mes}`, {
+                                method: 'GET',
+                                headers: {
+                                    'Content-Type': 'application/json',
+                                    Authorization: `Bearer ${token}`,
+                                },
+                            });
+                            if (!resp.ok) throw new Error(`Error fetching ${mes}`);
+                            const apiResp = await resp.json();
+                            const data = apiResp.data ? apiResp.data : apiResp;
+                            const count = Array.isArray(data) ? data.length : 0;
+                            
+                            // Calcular altura relativa (máximo esperado: 100 paquetes)
+                            const maxPaquetes = 100;
+                            const height = Math.min((count / maxPaquetes) * 100, 95);
+                            
+                            // Colores degradados según altura
+                            const accentColors = [
+                                '#508960', '#66a67d', '#8fbba6', '#a6c6b3',
+                                '#b4d1c1', '#c3d5ba', '#73b08b', '#5c986c',
+                                '#477e58', '#609d73', '#9ebca8', '#558f66'
+                            ];
+                            
+                            return {
+                                label,
+                                height: `${Math.max(height, 5)}%`,
+                                accent: accentColors[months.indexOf({ label, mes })],
+                                count
+                            };
+                        } catch (err) {
+                            console.error(`Error fetching chart data for ${mes}:`, err);
+                            return { label, height: '0%', accent: '#ccc', count: 0 };
+                        }
+                    })
+                );
+                setChartValues(chartData);
             } catch (err) {
                 console.error('Error fetching stats:', err);
             } finally {
@@ -120,7 +176,7 @@ const EmployeeDashboard = () => {
                             <div className="chart-bars">
                                 {chartValues.map((bar) => (
                                     <div key={bar.label} data-label={bar.label} style={{ position: 'relative' }}>
-                                        <span style={{ height: bar.height, background: bar.accent }} />
+                                        <span style={{ height: bar.height, background: bar.accent }} title={`${bar.label}: ${bar.count} paquetes`} />
                                     </div>
                                 ))}
                             </div>
