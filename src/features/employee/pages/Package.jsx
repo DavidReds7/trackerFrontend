@@ -258,7 +258,7 @@ export default function Package() {
                                 >
                                     <option value="">Todos</option>
                                     <option value="RECOLECTADO">RECOLECTADO</option>
-                                    <option value="EN_TRANSITO">EN_TRANSITO</option>
+                                    <option value="EN_TRANSITO">EN TRANSITO</option>
                                     <option value="ENTREGADO">ENTREGADO</option>
                                     <option value="CANCELADO">CANCELADO</option>
                                 </select>
@@ -280,6 +280,7 @@ export default function Package() {
                                     <tr>
                                         <th>Guía</th>
                                         <th>Cliente</th>
+                                        <th>Destino</th>
                                         <th>Estado</th>
                                         <th>Ubicación</th>
                                         <th>Acciones</th>
@@ -290,8 +291,9 @@ export default function Package() {
                                         <tr key={p.id || p._id || p.guia || Math.random()}>
                                             <td>{p.codigoQR || p.guiaTracking || p.guia_numero}</td>
                                             <td>{(p.clienteEmail || p.cliente || p.nombreCliente) || '-'}</td>
+                                            <td>{p.direccionDestino || '-'}</td>
                                             <td>
-                                                <span className={`status-badge ${p.estado === 'ENTREGADO' ? 'status-active' : 'status-inactive'}`}>
+                                                <span className={`status-badge status-${String(p.estado || '').toLowerCase()}`}>
                                                     {p.estado || '-'}
                                                 </span>
                                             </td>
@@ -461,7 +463,7 @@ export default function Package() {
                                                     >
                                                         <option value="" disabled>Selecciona un estado</option>
                                                         <option value="RECOLECTADO">RECOLECTADO</option>
-                                                        <option value="EN_TRANSITO">EN_TRANSITO</option>
+                                                        <option value="EN_TRANSITO">EN TRANSITO</option>
                                                         <option value="ENTREGADO">ENTREGADO</option>
                                                         <option value="CANCELADO">CANCELADO</option>
                                                     </select>
