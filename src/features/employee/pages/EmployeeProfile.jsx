@@ -1,57 +1,68 @@
-import React, {useState, useEffect} from "react";
-import "@/features/admin/pages/profile.css";
-import AdminHeader from "../components/AdminHeader";
-import { useAuth } from "@/context/AuthContext";
-import { updateUser } from "@/api/adminService";
+import React, { useEffect, useState } from 'react';
+import '@/features/admin/pages/profile.css';
+import '@/features/admin/pages/users.css';
+import { useAuth } from '@/context/AuthContext';
+import EmployeeHeader from '../components/EmployeeHeader';
+import { updateUser } from '@/api/adminService';
 
-const ProfilePage = () => {
+const EmployeeProfile = () => {
   const { user, token, mockLogin } = useAuth();
 
   const [formData, setFormData] = useState({
-    nombre: user?.nombre ?? "",
-    apellidoPaterno: user?.apellidoPaterno ?? "",
-    apellidoMaterno: user?.apellidoMaterno ?? "",
-    email: user?.email ?? "",
+    nombre: user?.nombre ?? '',
+    apellidoPaterno: user?.apellidoPaterno ?? '',
+    apellidoMaterno: user?.apellidoMaterno ?? '',
+    email: user?.email ?? '',
   });
-  const [toast, setToast] = useState({ type: null, message: "" });
+  const [toast, setToast] = useState({ type: null, message: '' });
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [satisfaction, setSatisfaction] = useState(null);
   const [satisfactionData, setSatisfactionData] = useState(null);
 
   useEffect(() => {
     setFormData({
-      nombre: user?.nombre ?? "",
-      apellidoPaterno: user?.apellidoPaterno ?? "",
-      apellidoMaterno: user?.apellidoMaterno ?? "",
-      email: user?.email ?? "",
+      nombre: user?.nombre ?? '',
+      apellidoPaterno: user?.apellidoPaterno ?? '',
+      apellidoMaterno: user?.apellidoMaterno ?? '',
+      email: user?.email ?? '',
     });
   }, [user]);
 
   useEffect(() => {
     const fetchSatisfaction = async () => {
       try {
+        const userObj = JSON.parse(localStorage.getItem('user') || '{}');
+        const empleadoId = userObj.id || user?.id;
+
+        if (!empleadoId) {
+          setSatisfaction(0);
+          setSatisfactionData(null);
+          return;
+        }
+
         const BASE_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:8080/api';
-        const res = await fetch(`${BASE_URL}/paquetes/satisfaccion`, {
+        const res = await fetch(`${BASE_URL}/paquetes/satisfaccion/repartidor/${empleadoId}`, {
           headers: {
             'Content-Type': 'application/json',
             ...(token ? { Authorization: `Bearer ${token}` } : {}),
           },
         });
+
         if (!res.ok) throw new Error('No se pudo obtener la satisfacción');
         const apiResp = await res.json();
         const data = apiResp && apiResp.data ? apiResp.data : apiResp;
         const indiceCumplimiento = data?.indiceCumplimiento ?? 0;
         setSatisfactionData(data);
         setSatisfaction(Math.round(indiceCumplimiento));
-        console.log('Satisfacción admin - data:', data, 'indice:', indiceCumplimiento);
+        console.log('Satisfacción repartidor - data:', data, 'indice:', indiceCumplimiento);
       } catch (e) {
-        console.error('Error fetching admin satisfaction:', e);
+        console.error('Error fetching satisfaction for repartidor:', e);
         setSatisfaction(0);
         setSatisfactionData(null);
       }
     };
     fetchSatisfaction();
-  }, [token]);
+  }, [token, user]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -80,18 +91,12 @@ const ProfilePage = () => {
         apellidoMaterno: payload.apellidoMaterno,
       };
       mockLogin(mergedUser);
-      setToast({
-        type: "success",
-        message: "Perfil actualizado correctamente",
-      });
-      setTimeout(() => setToast({ type: null, message: "" }), 3000);
+      setToast({ type: 'success', message: 'Perfil actualizado correctamente' });
+      setTimeout(() => setToast({ type: null, message: '' }), 3000);
       setConfirmOpen(false);
     } catch (err) {
-      setToast({
-        type: "error",
-        message: err.message || "Error al actualizar perfil",
-      });
-      setTimeout(() => setToast({ type: null, message: "" }), 3000);
+      setToast({ type: 'error', message: err.message || 'Error al actualizar perfil' });
+      setTimeout(() => setToast({ type: null, message: '' }), 3000);
       setConfirmOpen(false);
     }
   };
@@ -113,24 +118,23 @@ const ProfilePage = () => {
         apellidoMaterno: payload.apellidoMaterno,
       };
       mockLogin(mergedUser);
-      setFormSuccess("Perfil actualizado correctamente");
+      setFormSuccess('Perfil actualizado correctamente');
       setPendingEdit(false);
     } catch (err) {
-      setEditError(err.message || "Error al actualizar perfil");
+      setEditError(err.message || 'Error al actualizar perfil');
       setPendingEdit(false);
     }
   };
 
   return (
     <div className="admin-shell">
-      <AdminHeader />
+      <EmployeeHeader />
       <div className="profile-body">
         <section className="profile-hero">
           <div>
             <h1>Mi cuenta</h1>
             <p>
-              Bienvenido de nuevo, {user?.nombre} {user?.apellidoPaterno}{" "}
-              {user?.apellidoMaterno}
+              Bienvenido de nuevo, {user?.nombre} {user?.apellidoPaterno} {user?.apellidoMaterno}
             </p>
           </div>
           <div className="profile-hero__stats">
@@ -198,72 +202,33 @@ const ProfilePage = () => {
             </label>
 
             <div className="profile-actions">
-              <button
-                type="button"
-                className="ghost"
-                onClick={() =>
-                  setFormData({
-                    nombre: user?.nombre ?? "",
-                    apellidoPaterno: user?.apellidoPaterno ?? "",
-                    apellidoMaterno: user?.apellidoMaterno ?? "",
-                    email: user?.email ?? "",
-                  })
-                }
-              >
-                Cancelar
-              </button>
+              <button type="button" className="ghost" onClick={() => setFormData({
+                nombre: user?.nombre ?? '',
+                apellidoPaterno: user?.apellidoPaterno ?? '',
+                apellidoMaterno: user?.apellidoMaterno ?? '',
+                email: user?.email ?? '',
+              })}>Cancelar</button>
               <button type="submit">Actualizar</button>
             </div>
           </form>
         </section>
 
         {toast.type && (
-          <div
-            className="toast-container"
-            aria-live="polite"
-            aria-atomic="true"
-          >
-            <div
-              className={`toast ${
-                toast.type === "success" ? "toast--success" : "toast--error"
-              }`}
-            >
+          <div className="toast-container" aria-live="polite" aria-atomic="true">
+            <div className={`toast ${toast.type === 'success' ? 'toast--success' : 'toast--error'}`}>
               {toast.message}
             </div>
           </div>
         )}
         {confirmOpen && (
-          <div
-            className="confirm-overlay"
-            role="dialog"
-            aria-modal="true"
-            aria-label="Confirmación"
-          >
+          <div className="confirm-overlay" role="dialog" aria-modal="true" aria-label="Confirmación">
             <div className="confirm-modal">
-              <button
-                className="success-close"
-                aria-label="Cerrar"
-                onClick={() => setConfirmOpen(false)}
-              >
-                ×
-              </button>
+              <button className="success-close" aria-label="Cerrar" onClick={() => setConfirmOpen(false)}>×</button>
               <div className="success-body">
                 <h2>¿Deseas actualizar tu perfil?</h2>
                 <div className="success-actions">
-                  <button
-                    className="btn-cancel"
-                    type="button"
-                    onClick={() => setConfirmOpen(false)}
-                  >
-                    Regresar
-                  </button>
-                  <button
-                    className="btn-add-user"
-                    type="button"
-                    onClick={handleConfirmUpdate}
-                  >
-                    Confirmar
-                  </button>
+                  <button className="btn-cancel" type="button" onClick={() => setConfirmOpen(false)}>Regresar</button>
+                  <button className="btn-add-user" type="button" onClick={handleConfirmUpdate}>Confirmar</button>
                 </div>
               </div>
             </div>
@@ -274,4 +239,4 @@ const ProfilePage = () => {
   );
 };
 
-export default ProfilePage;
+export default EmployeeProfile;

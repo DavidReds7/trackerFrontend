@@ -1,28 +1,23 @@
-import React, { useState } from 'react';
-import { NavLink } from 'react-router-dom';
-import { useAuth } from '@/context/AuthContext';
+import React, { useState } from "react";
+import { NavLink } from "react-router-dom";
+import { useAuth } from "@/context/AuthContext";
 
 const navItems = [
-    { label: 'Dashboard', to: '/admin' },
-    { label: 'Reportes', to: '/admin/reportes' },
-    { label: 'Usuarios', to: '/admin/usuarios' },
-    { label: 'Mi Perfil', to: '/admin/perfil' }
+  { label: "Dashboard", to: "/employee" },
+  { label: "Paquetes", to: "/employee/packages" },
+  { label: "Mi Perfil", to: "/employee/profile" },
 ];
 
-const AdminHeader = () => {
+const EmployeeHeader = () => {
   const { logout } = useAuth();
+
   const [pendingLogout, setPendingLogout] = useState(false);
 
-  const startLogout = () => {
-    setPendingLogout(true);
-  };
+  const handleLogoutClick = () => setPendingLogout(true);
+  const cancelLogout = () => setPendingLogout(false);
 
-  const cancelLogout = () => {
-    setPendingLogout(false);
-  };
-
-  const confirmLogout = () => {
-    logout();
+  const confirmLogout = async () => {
+    await logout();
     setPendingLogout(false);
   };
 
@@ -37,7 +32,7 @@ const AdminHeader = () => {
           <NavLink
             key={item.label}
             to={item.to}
-            end={item.to === "/admin"}
+            end={item.to === "/employee"}
             className={({ isActive }) =>
               `admin-nav__link${isActive ? " active" : ""}`
             }
@@ -46,7 +41,12 @@ const AdminHeader = () => {
           </NavLink>
         ))}
       </nav>
-      <button type="button" className="admin-header__logout" onClick={startLogout}>
+
+      <button
+        type="button"
+        className="admin-header__logout"
+        onClick={handleLogoutClick}
+      >
         Salir
       </button>
 
@@ -67,7 +67,9 @@ const AdminHeader = () => {
             </button>
 
             <div className="success-body">
-              <h2 id="confirm-logout-title">¿Está seguro de querer cerrar sesión?</h2>
+              <h2 id="confirm-logout-title">
+                ¿Está seguro de querer cerrar sesión?
+              </h2>
 
               <div className="success-actions">
                 <button className="btn-cancel" onClick={cancelLogout}>
@@ -85,4 +87,4 @@ const AdminHeader = () => {
   );
 };
 
-export default AdminHeader;
+export default EmployeeHeader;

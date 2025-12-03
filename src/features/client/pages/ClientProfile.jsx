@@ -1,10 +1,10 @@
-import React, {useState, useEffect} from "react";
+import React, { useState, useEffect } from "react";
 import "@/features/admin/pages/profile.css";
-import AdminHeader from "../components/AdminHeader";
+import ClientHeader from "../components/ClientHeader";
 import { useAuth } from "@/context/AuthContext";
 import { updateUser } from "@/api/adminService";
 
-const ProfilePage = () => {
+const ClientProfile = () => {
   const { user, token, mockLogin } = useAuth();
 
   const [formData, setFormData] = useState({
@@ -15,8 +15,9 @@ const ProfilePage = () => {
   });
   const [toast, setToast] = useState({ type: null, message: "" });
   const [confirmOpen, setConfirmOpen] = useState(false);
-  const [satisfaction, setSatisfaction] = useState(null);
   const [satisfactionData, setSatisfactionData] = useState(null);
+
+  const BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:8080/api";
 
   useEffect(() => {
     setFormData({
@@ -27,31 +28,35 @@ const ProfilePage = () => {
     });
   }, [user]);
 
+  const getSatisfactionMessage = (percentage) => {
+    if (percentage >= 80) return "🎉 Excelente";
+    if (percentage >= 60) return "✅ Buen cumplimiento";
+    if (percentage >= 40) return "⚠️ Aceptable";
+    return "❌ Necesita mejorar";
+  };
+
   useEffect(() => {
     const fetchSatisfaction = async () => {
+      if (!user?.id) return;
       try {
-        const BASE_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:8080/api';
-        const res = await fetch(`${BASE_URL}/paquetes/satisfaccion`, {
-          headers: {
-            'Content-Type': 'application/json',
-            ...(token ? { Authorization: `Bearer ${token}` } : {}),
-          },
-        });
-        if (!res.ok) throw new Error('No se pudo obtener la satisfacción');
+        const res = await fetch(
+          `${BASE_URL}/paquetes/satisfaccion/cliente/${user.id}`,
+          {
+            headers: {
+              ...(token ? { Authorization: `Bearer ${token}` } : {}),
+            },
+          }
+        );
+        if (!res.ok) throw new Error("No se pudo obtener la satisfacción");
         const apiResp = await res.json();
-        const data = apiResp && apiResp.data ? apiResp.data : apiResp;
-        const indiceCumplimiento = data?.indiceCumplimiento ?? 0;
-        setSatisfactionData(data);
-        setSatisfaction(Math.round(indiceCumplimiento));
-        console.log('Satisfacción admin - data:', data, 'indice:', indiceCumplimiento);
+        setSatisfactionData(apiResp.data || apiResp);
       } catch (e) {
-        console.error('Error fetching admin satisfaction:', e);
-        setSatisfaction(0);
+        console.error("Error al obtener satisfacción del cliente:", e);
         setSatisfactionData(null);
       }
     };
     fetchSatisfaction();
-  }, [token]);
+  }, [user?.id, token]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -123,7 +128,7 @@ const ProfilePage = () => {
 
   return (
     <div className="admin-shell">
-      <AdminHeader />
+      <ClientHeader />
       <div className="profile-body">
         <section className="profile-hero">
           <div>
@@ -133,12 +138,12 @@ const ProfilePage = () => {
               {user?.apellidoMaterno}
             </p>
           </div>
-          <div className="profile-hero__stats">
-            <div>
-              <strong>{satisfactionData ? `${Math.round(satisfactionData.indiceCumplimiento)}%` : (satisfaction !== null ? `${satisfaction}%` : '...')}</strong>
-              <span>Índice de cumplimiento</span>
+          {satisfactionData && (
+            <div className="profile-hero__stats">
+              <strong>{Math.round(satisfactionData.indiceCumplimiento)}%</strong>
+              <span>Índice de satisfacción</span>
             </div>
-          </div>
+          )}
         </section>
 
         <section className="profile-card">
@@ -174,11 +179,11 @@ const ProfilePage = () => {
               />
             </label>
             <label>
-              Apellido materno
+              <span>Apellido materno</span>
               <input
                 type="text"
                 name="apellidoMaterno"
-                placeholder="Apellido materno"
+                placeholder="Apellido materno (opcional)"
                 value={formData.apellidoMaterno}
                 onChange={handleChange}
               />
@@ -196,7 +201,6 @@ const ProfilePage = () => {
                 required
               />
             </label>
-
             <div className="profile-actions">
               <button
                 type="button"
@@ -216,54 +220,15 @@ const ProfilePage = () => {
             </div>
           </form>
         </section>
-
-        {toast.type && (
-          <div
-            className="toast-container"
-            aria-live="polite"
-            aria-atomic="true"
-          >
-            <div
-              className={`toast ${
-                toast.type === "success" ? "toast--success" : "toast--error"
-              }`}
-            >
-              {toast.message}
-            </div>
-          </div>
-        )}
         {confirmOpen && (
-          <div
-            className="confirm-overlay"
-            role="dialog"
-            aria-modal="true"
-            aria-label="Confirmación"
-          >
+          <div className="confirm-overlay" role="dialog" aria-modal="true" aria-label="Confirmación">
             <div className="confirm-modal">
-              <button
-                className="success-close"
-                aria-label="Cerrar"
-                onClick={() => setConfirmOpen(false)}
-              >
-                ×
-              </button>
+              <button className="success-close" aria-label="Cerrar" onClick={() => setConfirmOpen(false)}>×</button>
               <div className="success-body">
                 <h2>¿Deseas actualizar tu perfil?</h2>
                 <div className="success-actions">
-                  <button
-                    className="btn-cancel"
-                    type="button"
-                    onClick={() => setConfirmOpen(false)}
-                  >
-                    Regresar
-                  </button>
-                  <button
-                    className="btn-add-user"
-                    type="button"
-                    onClick={handleConfirmUpdate}
-                  >
-                    Confirmar
-                  </button>
+                  <button className="btn-cancel" type="button" onClick={() => setConfirmOpen(false)}>Regresar</button>
+                  <button className="btn-add-user" type="button" onClick={handleConfirmUpdate}>Confirmar</button>
                 </div>
               </div>
             </div>
@@ -274,4 +239,4 @@ const ProfilePage = () => {
   );
 };
 
-export default ProfilePage;
+export default ClientProfile;

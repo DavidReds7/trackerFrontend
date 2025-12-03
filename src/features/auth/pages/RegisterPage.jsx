@@ -1,6 +1,7 @@
 import React, { useCallback, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import AuthScene from '../components/AuthScene';
+import { createUser } from '../../../api/userService';
 
 const RegisterPage = () => {
   const [form, setForm] = useState({
@@ -9,11 +10,13 @@ const RegisterPage = () => {
     maternalLastName: '',
     email: '',
     password: '',
-    confirmPassword: ''
+    location: ''
   });
+
   const [status, setStatus] = useState(null);
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
+
   const circlePosition = 'left';
   const panelState = 'idle';
 
@@ -21,14 +24,30 @@ const RegisterPage = () => {
     setForm((prev) => ({ ...prev, [name]: value }));
   };
 
-  const handleSubmit = (event) => {
+  const handleSubmit = async (event) => {
     event.preventDefault();
     setLoading(true);
     setStatus('Registrando tus datos...');
-    setTimeout(() => {
-      setStatus('Cuenta creada. Pronto conectaremos el backend para activarla.');
+
+    const payload = {
+      email: form.email,
+      password: form.password,
+      nombre: form.firstName,
+      apellidoPaterno: form.paternalLastName,
+      apellidoMaterno: form.maternalLastName,
+      ubicacion: form.location
+    };
+
+    try {
+      const { register } = await import('../../../api/authService');
+      const user = await register(payload);
+      setStatus('Cuenta creada correctamente. Puedes iniciar sesión.');
       setLoading(false);
-    }, 950);
+      setTimeout(() => navigate('/auth/login'), 900);
+    } catch (err) {
+      setStatus(err.message || 'Error al crear la cuenta.');
+      setLoading(false);
+    }
   };
 
   const handleBackToLogin = useCallback(
@@ -43,10 +62,7 @@ const RegisterPage = () => {
     <AuthScene title="Crear cuenta" description="" circlePosition={circlePosition} panelState={panelState}>
       <form className="auth-form" onSubmit={handleSubmit}>
         <label className="auth-form__field">
-          <span>
-            Nombre
-            <strong aria-hidden="true">*</strong>
-          </span>
+          <span>Nombre <strong>*</strong></span>
           <input
             type="text"
             name="firstName"
@@ -57,10 +73,7 @@ const RegisterPage = () => {
           />
         </label>
         <label className="auth-form__field">
-          <span>
-            Apellido paterno
-            <strong aria-hidden="true">*</strong>
-          </span>
+          <span>Apellido paterno <strong>*</strong></span>
           <input
             type="text"
             name="paternalLastName"
@@ -77,14 +90,11 @@ const RegisterPage = () => {
             name="maternalLastName"
             value={form.maternalLastName}
             onChange={handleChange}
-            placeholder="Apellido materno"
+            placeholder="Apellido materno (opcional)"
           />
         </label>
         <label className="auth-form__field">
-          <span>
-            Correo electrónico
-            <strong aria-hidden="true">*</strong>
-          </span>
+          <span>Correo electrónico <strong>*</strong></span>
           <input
             type="email"
             name="email"
@@ -95,10 +105,7 @@ const RegisterPage = () => {
           />
         </label>
         <label className="auth-form__field">
-          <span>
-            Contraseña
-            <strong aria-hidden="true">*</strong>
-          </span>
+          <span>Contraseña <strong>*</strong></span>
           <input
             type="password"
             name="password"
@@ -111,18 +118,49 @@ const RegisterPage = () => {
         </label>
         <label className="auth-form__field">
           <span>
-            Confirmar contraseña
+            Municipio (Morelos)
             <strong aria-hidden="true">*</strong>
           </span>
           <input
-            type="password"
-            name="confirmPassword"
-            value={form.confirmPassword}
+            type="text"
+            name="location"
+            value={form.location}
             onChange={handleChange}
-            placeholder="Confirmar contraseña"
+            placeholder="Selecciona tu municipio"
+            list="municipios-morelos"
             required
-            minLength={6}
           />
+          <datalist id="municipios-morelos">
+            <option value="Amacuzac" />
+            <option value="Atlatlahucan" />
+            <option value="Ayala" />
+            <option value="Axochiapan" />
+            <option value="Coatlán del Río" />
+            <option value="Cuautla" />
+            <option value="Cuernavaca" />
+            <option value="Emiliano Zapata" />
+            <option value="Huitzilac" />
+            <option value="Jantetelco" />
+            <option value="Jiutepec" />
+            <option value="Jonacatepec" />
+            <option value="Jojutla" />
+            <option value="Mazatepec" />
+            <option value="Miacatlán" />
+            <option value="Ocuituco" />
+            <option value="Puente de Ixtla" />
+            <option value="Temixco" />
+            <option value="Tepalcingo" />
+            <option value="Tepoztlán" />
+            <option value="Tetecala" />
+            <option value="Tetela del Volcán" />
+            <option value="Tlaquiltenango" />
+            <option value="Tlayacapan" />
+            <option value="Tlaltizapán" />
+            <option value="Xochitepec" />
+            <option value="Yautepec" />
+            <option value="Zacatepec" />
+            <option value="Temoac" />
+          </datalist>
         </label>
         <button type="submit" disabled={loading}>
           {loading ? 'Registrando...' : 'Registrar'}
@@ -139,4 +177,3 @@ const RegisterPage = () => {
 };
 
 export default RegisterPage;
-

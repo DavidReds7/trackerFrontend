@@ -7,7 +7,7 @@
   grid-template-columns: repeat(12, minmax(0, 1fr));
   column-gap: var(--admin-layout-gap);
   row-gap: 28px;
-  padding: 0 clamp(24px, 4vw, 160px);
+  padding: 0 clamp(1rem, 3vw, 3rem);
 }
 
 .admin-layout__inner {
@@ -22,7 +22,7 @@
 @media (max-width: 900px) {
   .admin-layout {
     row-gap: 20px;
-    padding: 0 24px;
+    padding: 0 1rem;
   }
 }
 
