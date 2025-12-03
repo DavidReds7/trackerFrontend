@@ -5,6 +5,8 @@ import "@/features/admin/pages/admin-layout.css";
 import "@/features/client/pages/client.css";
 import { useAuth } from "@/context/AuthContext";
 import { FiEye } from "react-icons/fi";
+import { MdQrCode } from "react-icons/md";
+import { LuPackageCheck } from "react-icons/lu";
 
 export default function ClientPackages() {
   const { token } = useAuth();
@@ -16,6 +18,11 @@ export default function ClientPackages() {
   const [loading, setLoading] = useState(false);
   const [selected, setSelected] = useState(null);
   const [details, setDetails] = useState(null);
+  const [qrOpen, setQrOpen] = useState(false);
+  const [qrCodigo, setQrCodigo] = useState(null);
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [confirmCodigoQR, setConfirmCodigoQR] = useState(null);
+  const [toastMessage, setToastMessage] = useState('');
   const BASE_URL = import.meta.env.VITE_API_URL ?? "http://localhost:8080/api";
 
   useEffect(() => {
@@ -164,18 +171,45 @@ export default function ClientPackages() {
     }
   };
 
+  const openQrModal = (codigoQR) => {
+    setQrCodigo(codigoQR);
+    setQrOpen(true);
+  };
+
+  const closeQrModal = () => {
+    setQrOpen(false);
+    setQrCodigo(null);
+  };
+
+  const openConfirmModal = (codigoQR) => {
+    setConfirmCodigoQR(codigoQR);
+    setConfirmOpen(true);
+  };
+
+  const closeConfirmModal = () => {
+    setConfirmOpen(false);
+    setConfirmCodigoQR(null);
+  };
+
+  const confirmReception = () => {
+    if (!confirmCodigoQR) return;
+    closeConfirmModal();
+    setToastMessage('Recepción confirmada exitosamente.');
+    setTimeout(() => setToastMessage(''), 3000);
+  };
+
   const getStatusClass = (estado) => {
     switch (estado) {
       case "RECOLECTADO":
-        return "status-pending"; // Amarillo/Naranja: En espera de iniciar tránsito
+        return "status-pending";
       case "EN_TRANSITO":
-        return "status-in-progress"; // Azul: Moviéndose
+        return "status-in-progress";
       case "ENTREGADO":
-        return "status-success"; // Verde: Finalizado
+        return "status-success";
       case "CANCELADO":
-        return "status-danger"; // Rojo: Cancelado
+        return "status-danger";
       default:
-        return "status-unknown"; // Gris: Estado no reconocido
+        return "status-unknown";
     }
   };
 
@@ -199,6 +233,28 @@ export default function ClientPackages() {
       <ClientHeader />
       <div className="admin-layout">
         <div className="admin-layout__inner">
+          {toastMessage && (
+            <div
+              role="status"
+              aria-live="polite"
+              style={{
+                position: 'fixed',
+                top: '1rem',
+                right: '1rem',
+                background: '#dcfce7',
+                color: '#065f46',
+                border: '1px solid #bbf7d0',
+                boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+                padding: '0.75rem 1rem',
+                borderRadius: '0.5rem',
+                zIndex: 1000,
+                minWidth: '220px',
+                textAlign: 'center'
+              }}
+            >
+              {toastMessage}
+            </div>
+          )}
           <section className="admin-panel--users">
             <div className="admin-panel__header">
               <h1>Mis Paquetes</h1>
@@ -243,16 +299,28 @@ export default function ClientPackages() {
                           {p.estado || "-"}
                         </span>
                       </td>
-                      <td>{p.ubicacion || p.ultimaUbicacion || ""}</td>
+                      <td>{p.ubicacion || p.ultimaUbicacion || "-"}</td>
                       <td>{formatTimestamp(p.fechaUltimaActualizacion)}</td>
                       <td className="actions-cell">
+                        {p.estado === 'ENTREGADO' && (
+                          <button
+                            type="button"
+                            className="action-btn action-btn--edit"
+                            aria-label="Confirmar recepción"
+                            onClick={() => openConfirmModal(p.codigoQR)}
+                            title="Confirmar recepción"
+                          >
+                            <LuPackageCheck />
+                          </button>
+                        )}
                         <button
                           type="button"
                           className="action-btn action-btn--view"
-                          aria-label="Ver paquete"
-                          onClick={() => handleView(p.id || p._id || p.guia)}
+                          aria-label="Mostrar QR"
+                          onClick={() => openQrModal(p.codigoQR)}
+                          title="Mostrar QR"
                         >
-                          <FiEye />
+                          <MdQrCode />
                         </button>
                       </td>
                     </tr>
@@ -380,9 +448,54 @@ export default function ClientPackages() {
                 </div>
               </div>
             )}
+
+            {qrOpen && qrCodigo && (
+              <div className="confirm-overlay" role="dialog" aria-modal="true" aria-label="Código QR">
+                <div className="details-modal" style={{ maxWidth: '450px' }}>
+                  <button className="success-close" aria-label="Cerrar" onClick={closeQrModal}>×</button>
+                  <div className="success-body" style={{ textAlign: 'center', maxWidth: '320px', margin: '0 auto' }}>
+                    <h2>Código QR</h2>
+                    {(() => {
+                      const appOrigin = typeof window !== 'undefined' ? window.location.origin : '';
+                      const scanUrl = `${appOrigin}/client/scan/${encodeURIComponent(qrCodigo)}`;
+                      const qrApi = `https://api.qrserver.com/v1/create-qr-code/?size=260x260&data=${encodeURIComponent(scanUrl)}`;
+                      return (
+                        <img
+                          src={qrApi}
+                          alt={`QR de ${qrCodigo}`}
+                          style={{ maxWidth: '260px', width: '100%', height: 'auto', borderRadius: '0.5rem', marginTop: '1rem', marginBottom: '1rem' }}
+                        />
+                      );
+                    })()}
+                    <div style={{ marginTop: '0.75rem' }}>
+                      <a href={`/client/scan/${encodeURIComponent(qrCodigo)}`} target="_blank" rel="noopener noreferrer" className="btn-add-user pill-btn pill-btn--primary" style={{ textDecoration: 'none', display: 'inline-block' }}>
+                        Abrir vista móvil
+                      </a>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {confirmOpen && (
+             <div className="confirm-overlay" role="dialog" aria-modal="true" aria-label="Confirmación">
+                <div className="confirm-modal">
+                  <button className="success-close" aria-label="Cerrar" onClick={closeConfirmModal}>×</button>
+                  <div className="success-body">
+                    <h2>Confirmación</h2>
+                    <p>Por favor confirma que has recibido tu paquete.</p>
+                    <div className="success-actions" style={{ marginTop: '1rem', display: 'flex', gap: '0.6rem', justifyContent: 'center' }}>
+                      <button className="btn-cancel pill-btn pill-btn--neutral" type="button" onClick={closeConfirmModal}>Regresar</button>
+                      <button className="btn-add-user pill-btn pill-btn--primary" type="button" onClick={confirmReception}>Confirmar</button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
           </section>
         </div>
       </div>
     </div>
   );
 }
+

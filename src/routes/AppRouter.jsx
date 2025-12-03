@@ -18,6 +18,7 @@ import EmployeeProfile from '../features/employee/pages/EmployeeProfile';
 import ClientRouter from './ClientRouter';
 import ClientPackages from '../features/client/pages/ClientPackages';
 import ClientProfile from '../features/client/pages/ClientProfile';
+import ClientScanPage from '../features/client/pages/ClientScanPage';
 
 const NotFoundPage = () => (
   <section>
@@ -51,6 +52,7 @@ function AppRouter() {
         <Route path="/client" element={<Navigate to="/client/packages" replace />} />
         <Route path="/client/packages" element={<ClientPackages />} />
         <Route path="/client/profile" element={<ClientProfile />} />
+        <Route path="/client/scan/:codigoQR" element={<ClientScanPage />} />
       </Route>
       <Route path="*" element={<NotFoundPage />} />
     </Routes>
