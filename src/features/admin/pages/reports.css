@@ -263,3 +263,38 @@
   color: var(--report-accent);
 }
 
+@media print {
+  .reports-shell {
+    background: white;
+    padding: 0;
+  }
+
+  .reports-header {
+    display: none;
+  }
+
+  .reports-card {
+    box-shadow: none;
+    border: 1px solid #e5e7eb;
+    page-break-inside: avoid;
+    margin-bottom: 2rem;
+  }
+
+  .reports-visual-wrapper {
+    background: white;
+    padding: 1.5rem;
+  }
+
+  .reports-chart-container {
+    page-break-inside: avoid;
+  }
+
+  .reports-stats-summary {
+    page-break-inside: avoid;
+  }
+
+  .stats-item {
+    page-break-inside: avoid;
+  }
+}
+

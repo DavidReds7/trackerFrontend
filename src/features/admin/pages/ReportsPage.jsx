@@ -1,5 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { PieChart, Pie, Cell, Legend, Tooltip, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid } from 'recharts';
+import html2pdf from 'html2pdf.js';
 import '@/features/admin/pages/reports.css';
 import '@/features/admin/pages/admin-layout.css';
 import AdminHeader from '../components/AdminHeader';
@@ -11,6 +12,7 @@ const ReportsPage = () => {
   const [employeeDeliveries, setEmployeeDeliveries] = useState([]);
   const [loading, setLoading] = useState(true);
   const [loadingEmployees, setLoadingEmployees] = useState(true);
+  const pdfRef = useRef();
   const BASE_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:8080/api';
 
   const estadosConfig = [
@@ -132,6 +134,40 @@ const ReportsPage = () => {
       fetchEmployeeDeliveries();
     }
   }, [token]);
+
+  const handleExportPDF = async () => {
+    // Mostrar un mensaje de carga
+    const button = document.querySelector('.reports-actions button');
+    const originalText = button.textContent;
+    button.textContent = 'Generando PDF...';
+    button.disabled = true;
+
+    try {
+      // Esperar a que las gráficas se rendericen completamente
+      await new Promise(resolve => setTimeout(resolve, 500));
+
+      const element = document.getElementById('pdf-content');
+      if (!element) return;
+
+      const opt = {
+        margin: [10, 10, 10, 10],
+        filename: `reporte-paquetes-${new Date().toISOString().split('T')[0]}.pdf`,
+        image: { type: 'jpeg', quality: 0.95 },
+        html2canvas: { scale: 2, useCORS: true, logging: false },
+        jsPDF: { orientation: 'portrait', unit: 'mm', format: 'a4' },
+        pagebreak: { mode: ['avoid-all', 'css', 'legacy'] }
+      };
+
+      html2pdf().set(opt).from(element).save();
+
+      button.textContent = originalText;
+      button.disabled = false;
+    } catch (err) {
+      console.error('Error al generar PDF:', err);
+      button.textContent = originalText;
+      button.disabled = false;
+    }
+  };
   const sections = [
     {
       title: 'Paquetes por entregar',
@@ -170,9 +206,17 @@ const ReportsPage = () => {
                 <h1>Tablero de reportes</h1>
               </div>
               <div className="reports-actions">
-                <button type="button">Exportar PDF</button>
+                <button type="button" onClick={handleExportPDF}>Exportar PDF</button>
               </div>
             </header>
+
+            <div id="pdf-content" style={{ backgroundColor: '#fff' }}>
+              <div style={{ padding: '2rem', textAlign: 'center', borderBottom: '2px solid #e5e7eb', marginBottom: '2rem' }}>
+                <h1 style={{ margin: '0 0 0.5rem 0', color: '#12522c', fontSize: '2rem' }}>Tablero de Reportes</h1>
+                <p style={{ margin: '0', color: '#6a6d71', fontSize: '0.95rem' }}>
+                  Generado el {new Date().toLocaleDateString('es-ES', { year: 'numeric', month: 'long', day: 'numeric' })}
+                </p>
+              </div>
 
             <section className="reports-grid">
               {/* Gráfica de pastel - Distribución por estado */}
@@ -341,6 +385,7 @@ const ReportsPage = () => {
                 </article>
               ))}
             </section>
+            </div>
           </div>
         </div>
       </div>
