@@ -169,43 +169,12 @@
   position: absolute;
   inset: 16px;
   border-radius: 20px;
-  background: radial-gradient(circle at 20% 20%, rgba(255, 255, 255, 0.85), transparent 50%), repeating-linear-gradient(
-    0deg,
-    rgba(255, 255, 255, 0.3),
-    rgba(255, 255, 255, 0.3) 6px,
-    transparent 6px,
-    transparent 14px
-  );
-}
-
-.reports-visual--line::after {
-  background-image: linear-gradient(120deg, rgba(16, 82, 43, 0.2), transparent 60%), repeating-linear-gradient(
-    0deg,
-    rgba(255, 255, 255, 0.3),
-    rgba(255, 255, 255, 0.3) 4px,
-    transparent 4px,
-    transparent 12px
-  );
-}
-
-.reports-visual--area::after {
-  background-image: radial-gradient(circle at 25% 25%, rgba(255, 255, 255, 0.5), transparent 55%), repeating-linear-gradient(
-    0deg,
-    rgba(255, 255, 255, 0.3),
-    rgba(255, 255, 255, 0.3) 2px,
-    transparent 2px,
-    transparent 8px
-  );
-}
-
-.reports-visual--bars::after {
-  background-image: linear-gradient(120deg, rgba(17, 120, 64, 0.15), transparent 55%), repeating-linear-gradient(
-    0deg,
-    rgba(255, 255, 255, 0.4),
-    rgba(255, 255, 255, 0.4) 6px,
-    transparent 6px,
-    transparent 14px
-  );
+  background: radial-gradient(circle at 20% 20%, rgba(255, 255, 255, 0.85), transparent 50%),
+    repeating-linear-gradient(0deg,
+      rgba(255, 255, 255, 0.3),
+      rgba(255, 255, 255, 0.3) 6px,
+      transparent 6px,
+      transparent 14px);
 }
 
 .reports-legend {
@@ -263,38 +232,49 @@
   color: var(--report-accent);
 }
 
-@media print {
-  .reports-shell {
-    background: white;
-    padding: 0;
-  }
+/* ========================= */
+/* 🧩 TABLAS PARA EXPORTAR PDF */
+/* ========================= */
 
-  .reports-header {
-    display: none;
-  }
-
-  .reports-card {
-    box-shadow: none;
-    border: 1px solid #e5e7eb;
-    page-break-inside: avoid;
-    margin-bottom: 2rem;
-  }
-
-  .reports-visual-wrapper {
-    background: white;
-    padding: 1.5rem;
-  }
-
-  .reports-chart-container {
-    page-break-inside: avoid;
-  }
-
-  .reports-stats-summary {
-    page-break-inside: avoid;
-  }
-
-  .stats-item {
-    page-break-inside: avoid;
-  }
+.pdf-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: 30px;
+  font-size: 14px;
 }
 
+.pdf-table th,
+.pdf-table td {
+  border: 1px solid #ccc;
+  padding: 8px;
+}
+
+/* ========================================= */
+/* 🛠️ SISTEMA DE OCULTADO PARA HTML2PDF */
+/* ========================================= */
+
+/* Oculto por defecto */
+.pdf-hidden {
+  position: fixed !important;
+  top: -20000px !important;
+  left: -20000px !important;
+  width: 800px !important;
+  /* ancho A4 */
+  visibility: visible !important;
+  opacity: 1 !important;
+  pointer-events: none !important;
+}
+
+/* Visible SOLO para html2pdf */
+.pdf-active {
+  position: fixed !important;
+  top: 0 !important;
+  left: -20000px !important;
+  /* 👈 fuera del viewport, pero html2pdf lo ve */
+  width: 800px !important;
+  background: white !important;
+  z-index: -1 !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+  pointer-events: none !important;
+}

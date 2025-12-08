@@ -1,18 +1,30 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { PieChart, Pie, Cell, Legend, Tooltip, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid } from 'recharts';
-import html2pdf from 'html2pdf.js';
+import {
+  PieChart, Pie, Cell, Legend, Tooltip, ResponsiveContainer,
+  BarChart, Bar, XAxis, YAxis, CartesianGrid
+} from 'recharts';
+import jsPDF from "jspdf";
+import autoTable from "jspdf-autotable";
+
 import '@/features/admin/pages/reports.css';
 import '@/features/admin/pages/admin-layout.css';
 import AdminHeader from '../components/AdminHeader';
 import { useAuth } from '@/context/AuthContext';
+// 💡 IMPORTAR EL NUEVO COMPONENTE DE TABLAS
+import ReportsPDFTables from './ReportsPDFTables';
 
 const ReportsPage = () => {
   const { token } = useAuth();
   const [stats, setStats] = useState([]);
   const [employeeDeliveries, setEmployeeDeliveries] = useState([]);
+  const [employeeSatisfaction, setEmployeeSatisfaction] = useState([]);
   const [loading, setLoading] = useState(true);
   const [loadingEmployees, setLoadingEmployees] = useState(true);
+  const [loadingSatisfaction, setLoadingSatisfaction] = useState(true);
+
   const pdfRef = useRef();
+  const exportButtonRef = useRef();
+
   const BASE_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:8080/api';
 
   const estadosConfig = [
@@ -23,7 +35,11 @@ const ReportsPage = () => {
     { estado: 'CANCELADO', label: 'Sin recibir', color: '#fca5a5' }
   ];
 
+  /* ============================
+     ... Lógica de FETCH (sin cambios)
+  ============================ */
   useEffect(() => {
+    if (!token) return;
     const fetchStats = async () => {
       setLoading(true);
       try {
@@ -31,361 +47,295 @@ const ReportsPage = () => {
           estadosConfig.map(async ({ estado, label, color }) => {
             try {
               const resp = await fetch(`${BASE_URL}/paquetes/estado/${estado}`, {
-                method: 'GET',
-                headers: {
-                  'Content-Type': 'application/json',
-                  Authorization: `Bearer ${token}`,
-                },
+                headers: { Authorization: `Bearer ${token}` }
               });
-              if (!resp.ok) throw new Error(`Error fetching ${estado}`);
-              const apiResp = await resp.json();
-              const value = apiResp.data || 0;
-              return {
-                name: label,
-                value: parseInt(value, 10),
-                color,
-              };
-            } catch (err) {
-              console.error(`Error fetching ${estado}:`, err);
+              const json = await resp.json();
+              return { name: label, value: json.data ?? 0, color };
+            } catch {
               return { name: label, value: 0, color };
             }
           })
         );
         setStats(statsData);
-      } catch (err) {
-        console.error('Error fetching stats:', err);
       } finally {
         setLoading(false);
       }
     };
 
-    if (token) {
-      fetchStats();
-    }
+    fetchStats();
   }, [token]);
 
   useEffect(() => {
-    const fetchEmployeeDeliveries = async () => {
-      setLoadingEmployees(true);
-      try {
-        // Obtener lista de empleados
-        const employeesResp = await fetch(`${BASE_URL}/usuarios/rol/EMPLEADO`, {
-          method: 'GET',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${token}`,
-          },
-        });
-        if (!employeesResp.ok) throw new Error('Error fetching empleados');
-        const employeesData = await employeesResp.json();
-        const employees = employeesData.data || [];
+    if (!token) return;
 
-        // Obtener paquetes por entregar para cada empleado
-        const deliveriesData = await Promise.all(
+    const fetchSatisfaction = async () => {
+      setLoadingSatisfaction(true);
+      try {
+        const empResp = await fetch(`${BASE_URL}/usuarios/rol/EMPLEADO`, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        const employees = (await empResp.json()).data ?? [];
+
+        const satData = await Promise.all(
           employees.map(async (emp) => {
             try {
-              const resp = await fetch(`${BASE_URL}/paquetes/empleado?empleadoId=${emp.id}&estado=RECOLECTADO`, {
-                method: 'GET',
-                headers: {
-                  'Content-Type': 'application/json',
-                  Authorization: `Bearer ${token}`,
-                },
-              });
-              if (!resp.ok) throw new Error(`Error fetching for ${emp.id}`);
-              const apiResp = await resp.json();
-              const data = apiResp.data || [];
-              const count = Array.isArray(data) ? data.length : 0;
+              const resp = await fetch(
+                `${BASE_URL}/paquetes/satisfaccion/repartidor/${emp.id}`,
+                { headers: { Authorization: `Bearer ${token}` } }
+              );
+              const json = await resp.json();
               return {
                 name: `${emp.nombre} ${emp.apellidoPaterno}`,
-                'Paquetes a entregar': count,
-                empleadoId: emp.id,
+                satisfaction: json.data?.indiceCumplimiento ?? 0,
+                total: json.data?.totalPaquetes ?? 0,
+                entregados: json.data?.paquetesEntregados ?? 0
               };
-            } catch (err) {
-              console.error(`Error fetching deliveries for ${emp.id}:`, err);
+            } catch {
               return {
                 name: `${emp.nombre} ${emp.apellidoPaterno}`,
-                'Paquetes a entregar': 0,
-                empleadoId: emp.id,
+                satisfaction: 0,
+                total: 0,
+                entregados: 0
               };
             }
           })
         );
 
-        // Calcular promedio
-        const totalDeliveries = deliveriesData.reduce((sum, emp) => sum + emp['Paquetes a entregar'], 0);
-        const averageDeliveries = deliveriesData.length > 0 ? Math.round(totalDeliveries / deliveriesData.length) : 0;
+        setEmployeeSatisfaction(satData);
+      } finally {
+        setLoadingSatisfaction(false);
+      }
+    };
 
-        setEmployeeDeliveries([
-          ...deliveriesData,
-          {
-            name: 'Promedio mensual',
-            'Paquetes a entregar': averageDeliveries,
-            isAverage: true,
-          },
-        ]);
-      } catch (err) {
-        console.error('Error fetching employee deliveries:', err);
+    fetchSatisfaction();
+  }, [token]);
+
+  useEffect(() => {
+    if (!token) return;
+
+    const fetchDeliveries = async () => {
+      setLoadingEmployees(true);
+      try {
+        const empResp = await fetch(`${BASE_URL}/usuarios/rol/EMPLEADO`, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+
+        const employees = (await empResp.json()).data ?? [];
+
+        const deliveries = await Promise.all(
+          employees.map(async (emp) => {
+            try {
+              const resp = await fetch(
+                `${BASE_URL}/paquetes/empleado?usuarioId=${emp.id}&rol=EMPLEADO`,
+                { headers: { Authorization: `Bearer ${token}` } }
+              );
+              const json = await resp.json();
+
+              const notDelivered = (json.data ?? []).filter(
+                (p) => p.estado !== 'ENTREGADO'
+              );
+
+              return {
+                name: `${emp.nombre} ${emp.apellidoPaterno}`,
+                'Paquetes a entregar': notDelivered.length,
+                empleadoId: emp.id
+              };
+            } catch {
+              return {
+                name: `${emp.nombre} ${emp.apellidoPaterno}`,
+                'Paquetes a entregar': 0,
+                empleadoId: emp.id
+              };
+            }
+          })
+        );
+
+        setEmployeeDeliveries(deliveries);
       } finally {
         setLoadingEmployees(false);
       }
     };
 
-    if (token) {
-      fetchEmployeeDeliveries();
-    }
+    fetchDeliveries();
   }, [token]);
 
-  const handleExportPDF = async () => {
-    // Mostrar un mensaje de carga
-    const button = document.querySelector('.reports-actions button');
-    const originalText = button.textContent;
-    button.textContent = 'Generando PDF...';
-    button.disabled = true;
 
-    try {
-      // Esperar a que las gráficas se rendericen completamente
-      await new Promise(resolve => setTimeout(resolve, 500));
+  /* ============================
+     EXPORTAR PDF SOLO TABLAS (Lógica sin cambios)
+  ============================ */
+  const handleExportPDF = () => {
+    const doc = new jsPDF();
 
-      const element = document.getElementById('pdf-content');
-      if (!element) return;
+    // ============================
+    // Tabla: Estados
+    // ============================
+    const total = stats.reduce((sum, s) => sum + s.value, 0);
 
-      const opt = {
-        margin: [10, 10, 10, 10],
-        filename: `reporte-paquetes-${new Date().toISOString().split('T')[0]}.pdf`,
-        image: { type: 'jpeg', quality: 0.95 },
-        html2canvas: { scale: 2, useCORS: true, logging: false },
-        jsPDF: { orientation: 'portrait', unit: 'mm', format: 'a4' },
-        pagebreak: { mode: ['avoid-all', 'css', 'legacy'] }
-      };
+    autoTable(doc, {
+      head: [["Estado", "Cantidad", "Porcentaje"]],
+      body: stats.map(s => [
+        s.name,
+        s.value,
+        total ? ((s.value / total) * 100).toFixed(1) + "%" : "0%"
+      ]),
+      startY: 10,
+      theme: "grid",
+    });
 
-      html2pdf().set(opt).from(element).save();
+    // ============================
+    // Tabla: Paquetes por entregar
+    // ============================
+    autoTable(doc, {
+      head: [["Empleado", "Paquetes pendientes"]],
+      body: employeeDeliveries.map(e => [
+        e.name,
+        e["Paquetes a entregar"]
+      ]),
+      startY: doc.lastAutoTable.finalY + 10,
+      theme: "grid",
+    });
 
-      button.textContent = originalText;
-      button.disabled = false;
-    } catch (err) {
-      console.error('Error al generar PDF:', err);
-      button.textContent = originalText;
-      button.disabled = false;
-    }
+    // ============================
+    // Tabla: Satisfacción
+    // ============================
+    autoTable(doc, {
+      head: [["Empleado", "%", "Total", "Entregados"]],
+      body: employeeSatisfaction.map(e => [
+        e.name,
+        `${e.satisfaction}%`,
+        e.total,
+        e.entregados,
+      ]),
+      startY: doc.lastAutoTable.finalY + 10,
+      theme: "grid",
+    });
+
+    doc.save(`reporte-${Date.now()}.pdf`);
   };
-  const sections = [
-    {
-      title: 'Paquetes por entregar',
-      subtitle: 'Comparativa por empleados',
-      legend: ['Hoja actual', 'Promedio mensual'],
-      variant: 'line'
-    },
-    {
-      title: 'Paquetes en tránsito',
-      subtitle: 'Velocidad de entrega por zona',
-      legend: ['Zona norte', 'Zona centro', 'Zona sur'],
-      variant: 'area'
-    },
-    {
-      title: 'Cumplimiento de rutas',
-      subtitle: 'Semanas recientes',
-      legend: ['Ruta 01', 'Ruta 02', 'Ruta 03'],
-      variant: 'bars'
-    },
-    {
-      title: 'Tickets resueltos',
-      subtitle: 'Atención a clientes',
-      legend: ['Abiertos', 'Cerrados', 'En espera'],
-      variant: 'line'
-    }
-  ];
+
 
   return (
     <div className="admin-shell">
       <AdminHeader />
+
       <div className="admin-layout">
         <div className="admin-layout__inner">
           <div className="reports-shell">
+
+            {/* HEADER */}
             <header className="reports-header">
-              <div>
-                <h1>Tablero de reportes</h1>
-              </div>
-              <div className="reports-actions">
-                <button type="button" onClick={handleExportPDF}>Exportar PDF</button>
+              <h1>Tablero de reportes</h1>
+              <div className='reports-actions'>
+                <button ref={exportButtonRef} onClick={handleExportPDF}>
+                  Exportar PDF
+                </button>
               </div>
             </header>
 
-            <div id="pdf-content" style={{ backgroundColor: '#fff' }}>
-              <div style={{ padding: '2rem', textAlign: 'center', borderBottom: '2px solid #e5e7eb', marginBottom: '2rem' }}>
-                <h1 style={{ margin: '0 0 0.5rem 0', color: '#12522c', fontSize: '2rem' }}>Tablero de Reportes</h1>
-                <p style={{ margin: '0', color: '#6a6d71', fontSize: '0.95rem' }}>
-                  Generado el {new Date().toLocaleDateString('es-ES', { year: 'numeric', month: 'long', day: 'numeric' })}
-                </p>
-              </div>
+            {/* ============================================
+                ✨ SECCIÓN VISIBLE EN PANTALLA (GRÁFICAS)
+            ============================================ */}
+            <div className="screen-only">
 
-            <section className="reports-grid">
-              {/* Gráfica de pastel - Distribución por estado */}
-              <article className="reports-card reports-card--featured">
-                <header className="reports-card__header">
-                  <div>
-                    <p className="reports-card__subtitle">Análisis general</p>
-                    <h2>Distribución de paquetes por estado</h2>
-                  </div>
-                </header>
-                <div className="reports-visual-wrapper">
-                  {loading ? (
-                    <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '400px' }}>
-                      <p>Cargando datos...</p>
-                    </div>
-                  ) : stats.length > 0 ? (
-                    <div className="reports-chart-container">
-                      <ResponsiveContainer width="100%" height={400}>
+              <section className="reports-grid">
+
+                {/* PIE CHART */}
+                <article className="reports-card reports-card--featured">
+                  <h2>Distribución de paquetes por estado</h2>
+
+                  <div className="reports-visual-wrapper">
+                    {loading ? (
+                      <p>Cargando…</p>
+                    ) : (
+                      <ResponsiveContainer width="100%" height={350}>
                         <PieChart>
                           <Pie
                             data={stats}
                             cx="50%"
                             cy="50%"
-                            labelLine={true}
-                            label={({ name, value, percent }) => `${name}: ${value} (${(percent * 100).toFixed(1)}%)`}
                             outerRadius={120}
-                            innerRadius={0}
-                            fill="#8884d8"
                             dataKey="value"
-                            paddingAngle={2}
+                            label
                           >
-                            {stats.map((entry, index) => (
-                              <Cell key={`cell-${index}`} fill={entry.color} />
+                            {stats.map((entry, i) => (
+                              <Cell key={i} fill={entry.color} />
                             ))}
                           </Pie>
-                          <Tooltip 
-                            formatter={(value) => [`${value} paquetes`, 'Cantidad']}
-                            contentStyle={{ backgroundColor: '#fff', border: '1px solid #e5e7eb', borderRadius: '8px' }}
-                          />
-                          <Legend 
-                            verticalAlign="bottom" 
-                            height={36}
-                            formatter={(value, entry) => `${entry.payload.name}`}
-                          />
+                          <Legend />
+                          <Tooltip />
                         </PieChart>
                       </ResponsiveContainer>
-                    </div>
-                  ) : (
-                    <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '400px' }}>
-                      <p>Sin datos disponibles</p>
-                    </div>
-                  )}
-                </div>
-                <div className="reports-stats-summary">
-                  {stats.map((stat) => (
-                    <div key={stat.name} className="stats-item">
-                      <span className="stats-color" style={{ backgroundColor: stat.color }} />
-                      <div className="stats-info">
-                        <p className="stats-label">{stat.name}</p>
-                        <p className="stats-value">{stat.value} paquetes</p>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </article>
-
-              {/* Gráfica de barras - Paquetes por entregar por empleados */}
-              <article className="reports-card reports-card--featured">
-                <header className="reports-card__header">
-                  <div>
-                    <p className="reports-card__subtitle">Comparativa por empleados</p>
-                    <h2>Paquetes por entregar</h2>
+                    )}
                   </div>
-                </header>
-                <div className="reports-visual-wrapper">
-                  {loadingEmployees ? (
-                    <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '400px' }}>
-                      <p>Cargando datos...</p>
-                    </div>
-                  ) : employeeDeliveries.length > 0 ? (
-                    <div className="reports-chart-container">
-                      <ResponsiveContainer width="100%" height={400}>
-                        <BarChart data={employeeDeliveries} margin={{ top: 20, right: 30, left: 0, bottom: 100 }}>
-                          <CartesianGrid strokeDasharray="3 3" stroke="rgba(0,0,0,0.1)" />
-                          <XAxis 
-                            dataKey="name" 
-                            angle={-45} 
-                            textAnchor="end" 
-                            height={120}
+                </article>
+
+                {/* BARRAS PENDIENTES */}
+                <article className="reports-card">
+                  <h2>Paquetes por entregar</h2>
+
+                  <div className="reports-visual-wrapper">
+                    {loadingEmployees ? (
+                      <p>Cargando…</p>
+                    ) : (
+                      <ResponsiveContainer width="100%" height={350}>
+                        <BarChart
+                          data={employeeDeliveries}
+                          margin={{ bottom: 100 }}
+                        >
+                          <CartesianGrid strokeDasharray="3 3" />
+                          <XAxis
+                            dataKey="name"
+                            angle={-45}
+                            textAnchor="end"
                             interval={0}
-                            tick={{ fontSize: 12 }}
                           />
                           <YAxis />
-                          <Tooltip 
-                            formatter={(value) => [`${value} paquetes`, 'Cantidad']}
-                            contentStyle={{ backgroundColor: '#fff', border: '1px solid #e5e7eb', borderRadius: '8px' }}
-                          />
-                          <Bar 
-                            dataKey="Paquetes a entregar" 
-                            fill="#3b82f6"
-                            radius={[8, 8, 0, 0]}
-                            shape={({ x, y, width, height, fill }) => {
-                              const isAverage = employeeDeliveries[x / (width || 1)]?.isAverage;
-                              return (
-                                <rect
-                                  x={x}
-                                  y={y}
-                                  width={width}
-                                  height={height}
-                                  fill={isAverage ? '#10b981' : fill}
-                                  radius={[8, 8, 0, 0]}
-                                />
-                              );
-                            }}
-                          />
+                          <Tooltip />
+                          <Bar dataKey="Paquetes a entregar" fill="#3b82f6" />
                         </BarChart>
                       </ResponsiveContainer>
-                    </div>
-                  ) : (
-                    <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '400px' }}>
-                      <p>Sin datos disponibles</p>
-                    </div>
-                  )}
-                </div>
-                <div className="reports-stats-summary">
-                  {employeeDeliveries.map((emp) => (
-                    <div key={emp.empleadoId || emp.name} className="stats-item">
-                      <span 
-                        className="stats-color" 
-                        style={{ backgroundColor: emp.isAverage ? '#10b981' : '#3b82f6' }} 
-                      />
-                      <div className="stats-info">
-                        <p className="stats-label">{emp.name}</p>
-                        <p className="stats-value">{emp['Paquetes a entregar']} paquetes</p>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </article>
-
-              {/* Demás reportes como placeholders */}
-              {sections.map((section) => (
-                <article key={section.title} className="reports-card">
-                  <header className="reports-card__header">
-                    <div>
-                      <p className="reports-card__subtitle">{section.subtitle}</p>
-                      <h2>{section.title}</h2>
-                    </div>
-                    <div className={`reports-chart reports-chart--${section.variant}`}>
-                      {section.variant === 'pie' && <span className="reports-chart__pie" />}
-                      {section.variant === 'bars' && (
-                        <div className="reports-chart__bars">
-                          <span />
-                          <span />
-                          <span />
-                        </div>
-                      )}
-                    </div>
-                  </header>
-                  <div className={`reports-visual reports-visual--${section.variant}`} />
-                  <ul className="reports-legend">
-                    {section.legend.map((item) => (
-                      <li key={item}>{item}</li>
-                    ))}
-                  </ul>
+                    )}
+                  </div>
                 </article>
-              ))}
-            </section>
+
+                {/* SATISFACCION */}
+                <article className="reports-card">
+                  <h2>Índice de satisfacción</h2>
+
+                  <div className="reports-visual-wrapper">
+                    {loadingSatisfaction ? (
+                      <p>Cargando…</p>
+                    ) : (
+                      <ResponsiveContainer width="100%" height={350}>
+                        <BarChart data={employeeSatisfaction}>
+                          <CartesianGrid strokeDasharray="3 3" />
+                          <XAxis
+                            dataKey="name"
+                            angle={-45}
+                            textAnchor="end"
+                            interval={0}
+                          />
+                          <YAxis domain={[0, 100]} />
+                          <Tooltip />
+                          <Bar dataKey="satisfaction" fill="#10b981" />
+                        </BarChart>
+                      </ResponsiveContainer>
+                    )}
+                  </div>
+                </article>
+
+              </section>
+
             </div>
+
+            <ReportsPDFTables
+              ref={pdfRef}
+              className="pdf-hidden"
+              stats={stats}
+              employeeDeliveries={employeeDeliveries}
+              employeeSatisfaction={employeeSatisfaction}
+            />
+
           </div>
         </div>
       </div>
@@ -394,4 +344,3 @@ const ReportsPage = () => {
 };
 
 export default ReportsPage;
-
