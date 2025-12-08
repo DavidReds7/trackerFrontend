@@ -7,7 +7,7 @@ import { createPackage } from '@/api/packageService';
 import { FiRefreshCw, FiEye } from 'react-icons/fi';
 
 export default function Package() {
-    const { token } = useAuth();
+    const { user, token } = useAuth();
     const [formError, setFormError] = useState(null);
     const [formSuccess, setFormSuccess] = useState(null);
     const [packages, setPackages] = useState([]);
@@ -82,8 +82,10 @@ export default function Package() {
 
 
     useEffect(() => {
-        if (token) fetchPackages();
-    }, [token]);
+        if (token && user?.id) {
+            fetchPackages();
+        }
+    }, [token, user]);
 
     // Cargar lista de clientes (solo emails) para el select
     useEffect(() => {
@@ -113,32 +115,37 @@ export default function Package() {
     const fetchPackages = async () => {
         setLoading(true);
         try {
-            // Obtener ID del empleado del localStorage
-            const user = JSON.parse(localStorage.getItem('user') || '{}');
-            const empleadoId = user.id;
+            const empleadoId = user?.id;
 
             if (!empleadoId) {
-                throw new Error('No se encontró el ID del empleado');
+                console.error("No se encontró empleadoId desde AuthContext");
+                setPackages([]);
+                setFiltered([]);
+                return;
             }
 
-            // 🌟 CAMBIO CLAVE AQUÍ: Usar el parámetro de consulta ?empleadoId=
-            const url = `${BASE_URL}/paquetes/empleado?empleadoId=${empleadoId}`;
-
-            const resp = await fetch(url, {
-                method: 'GET',
-                headers: {
-                    'Content-Type': 'application/json',
-                    Authorization: `Bearer ${token}`
+            const resp = await fetch(
+                `${BASE_URL}/paquetes/empleado?usuarioId=${empleadoId}`,
+                {
+                    method: "GET",
+                    headers: {
+                        "Content-Type": "application/json",
+                        Authorization: `Bearer ${token}`,
+                    },
                 }
-            });
+            );
 
-            if (!resp.ok) throw new Error('No se pudieron cargar los paquetes');
+            if (!resp.ok) throw new Error("No se pudieron cargar los paquetes");
+
             const apiResp = await resp.json();
-            const data = apiResp && apiResp.data ? apiResp.data : apiResp;
-            setPackages(data || []);
-            setFiltered(data || []);
+            const data = apiResp.data || [];
+
+            setPackages(data);
+            setFiltered(data);
         } catch (err) {
-            console.error('Error cargando paquetes:', err);
+            console.error("Error cargando paquetes:", err);
+            setPackages([]);
+            setFiltered([]);
         } finally {
             setLoading(false);
         }
@@ -258,13 +265,13 @@ export default function Package() {
 
     const formatTimestamp = (timestamp) => {
         if (!timestamp) return '-';
-        
+
         // Si es un objeto con seconds y nanos (Firebase Timestamp)
         if (timestamp.seconds !== undefined) {
             const date = new Date(timestamp.seconds * 1000);
             return date.toLocaleString('es-ES');
         }
-        
+
         // Si es una cadena o número
         const date = new Date(timestamp);
         if (isNaN(date.getTime())) return '-';
@@ -285,7 +292,7 @@ export default function Package() {
                             >
                                 Agregar Paquete
                             </button>
-                            <div className="admin-panel__controls" style={{display: 'flex', gap: '8px', alignItems: 'center'}}>
+                            <div className="admin-panel__controls" style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
                                 <select
                                     name="estadoFilter"
                                     value={estadoFilter}
@@ -526,7 +533,7 @@ export default function Package() {
                                                 </label>
                                             </div>
 
-                                            
+
 
                                             <div >
                                                 <label className="auth-form__field" style={{ width: '100%' }}>
@@ -538,7 +545,7 @@ export default function Package() {
                                                         onChange={handleMovementChange}
                                                         placeholder="Notas adicionales (opcional)"
                                                         rows="4"
-                                                        
+
                                                     />
                                                 </label>
                                             </div>
@@ -568,16 +575,16 @@ export default function Package() {
                         {selectedPackage && packageDetails && (
                             <div className="details-overlay" role="dialog" aria-modal="true" aria-label="Detalles completos del paquete">
                                 <div className="details-modal">
-                                    <button 
-                                        className="success-close" 
-                                        aria-label="Cerrar detalles del paquete" 
+                                    <button
+                                        className="success-close"
+                                        aria-label="Cerrar detalles del paquete"
                                         onClick={() => { setSelectedPackage(null); setPackageDetails(null); }}
                                     >
                                         ×
                                     </button>
                                     <div className="details-content">
                                         <h2>Detalles Completos del Paquete</h2>
-                                        
+
                                         <div className="info-section">
                                             <h3>Información del Paquete</h3>
                                             <div className="info-grid">

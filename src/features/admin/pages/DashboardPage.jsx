@@ -16,11 +16,12 @@ const activity = [
 
 const DashboardPage = () => {
   const { user, token } = useAuth();
-
+  const [searchTerm, setSearchTerm] = useState('');
   const [stats, setStats] = useState([]);
   const [chartValues, setChartValues] = useState([]);
   const [recentPackages, setRecentPackages] = useState([]);
-
+  const [movements, setMovements] = useState([]);
+  const [loadingMovements, setLoadingMovements] = useState(true);
   const [loadingStats, setLoadingStats] = useState(true);
   const [loadingChart, setLoadingChart] = useState(true);
   const [loadingRecent, setLoadingRecent] = useState(true);
@@ -64,6 +65,62 @@ const DashboardPage = () => {
     if (!timestamp || timestamp.seconds === undefined) return '-';
     const date = new Date(timestamp.seconds * 1000);
     return date.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
+  };
+
+  const fetchMovements = async () => {
+    setLoadingMovements(true);
+    try {
+      const resp = await fetch(`${BASE_URL}/movimientos`, {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      if (!resp.ok) throw new Error("Error al cargar movimientos");
+
+      const apiResp = await resp.json();
+      const rawMovements = apiResp.data || [];
+
+      // 🔥 Solo tomar los últimos 5 movimientos
+      const lastFive = rawMovements.slice(0, 5);
+
+      // 🔥 Enriquecer cada movimiento con el código QR del paquete
+      const movementsWithQR = await Promise.all(
+        lastFive.map(async (m) => {
+          try {
+            const pkgResp = await fetch(`${BASE_URL}/paquetes/${m.paqueteId}`, {
+              method: "GET",
+              headers: {
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${token}`,
+              },
+            });
+
+            if (!pkgResp.ok) throw new Error("Error obteniendo paquete");
+
+            const pkgData = await pkgResp.json();
+            const paquete = pkgData.data;
+
+            return {
+              ...m,
+              codigoQR: paquete?.codigoQR ?? "SIN-CODIGO",
+            };
+          } catch (err) {
+            console.error("Error packageId:", m.paqueteId, err);
+            return { ...m, codigoQR: "SIN-CODIGO" };
+          }
+        })
+      );
+
+      setMovements(movementsWithQR);
+    } catch (err) {
+      console.error("Error cargando movimientos:", err);
+      setMovements([]);
+    } finally {
+      setLoadingMovements(false);
+    }
   };
 
   // --- Fetch de estadísticas globales (usa /paquetes/empleado por estado) ---
@@ -112,10 +169,29 @@ const DashboardPage = () => {
   };
 
   // --- Fetch de entregados por mes (usa /paquetes/empleado?estado=ENTREGADO&mes=YYYY-MM) ---
-  const fetchChartData = async () => {
+  const fetchChartData = async (empleadoFiltro = '') => {
     setLoadingChart(true);
     try {
-      const maxPaquetesReferencia = 100; // para escalar barras (puedes ajustar)
+      const totalCounts = await Promise.all(
+        months.map(async ({ mes }) => {
+          const empleadoParam = empleadoFiltro ? `&empleado=${empleadoFiltro}` : '';
+          const resp = await fetch(
+            `${BASE_URL}/paquetes/empleado?estado=ENTREGADO&mes=${mes}${empleadoParam}`,
+            {
+              method: 'GET',
+              headers: {
+                'Content-Type': 'application/json',
+                Authorization: `Bearer ${token}`,
+              },
+            }
+          );
+          const apiResp = await resp.json();
+          const data = apiResp.data ? apiResp.data : apiResp;
+          return Array.isArray(data) ? data.length : 0;
+        })
+      );
+
+      const maxPaquetesReferencia = Math.max(...totalCounts, 1);
 
       const chartData = await Promise.all(
         months.map(async ({ label, mes }, index) => {
@@ -195,7 +271,14 @@ const DashboardPage = () => {
     fetchStats();
     fetchChartData();
     fetchRecentPackages();
+    fetchMovements();
   }, [token]);
+
+  useEffect(() => {
+    if (!token) return;
+    fetchChartData(searchTerm);
+  }, [searchTerm]);
+
 
   return (
     <div className="admin-shell">
@@ -225,7 +308,12 @@ const DashboardPage = () => {
                 <h3>Entregados por mes (global)</h3>
                 <div className="admin-panel__controls">
                   {/* En admin, este input es decorativo por ahora (igual que EmployeeDashboard) */}
-                  <input placeholder="Buscar empleado" />
+                  <input
+                    placeholder="Buscar empleado"
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                  />
+
                 </div>
               </div>
 
@@ -254,11 +342,26 @@ const DashboardPage = () => {
 
             <article className="admin-panel admin-panel--activity">
               <h3>Actividad reciente</h3>
-              <ul>
-                {activity.map((item) => (
-                  <li key={item}>{item}</li>
-                ))}
-              </ul>
+
+              {loadingMovements ? (
+                <p>Cargando actividad...</p>
+              ) : movements.length === 0 ? (
+                <p>No hay movimientos recientes.</p>
+              ) : (
+                <ul>
+                  {movements.map((m) => (
+                    <li key={m.id}>
+                      <strong>{m.estado}</strong> — {m.ubicacion}
+                      <br />
+                      <small>
+                        Guía: <strong>{m.codigoQR}</strong> ·{" "}
+                        {m.observaciones || "Sin observaciones"} ·{" "}
+                        {new Date(m.fechaHora.seconds * 1000).toLocaleTimeString("es-MX")}
+                      </small>
+                    </li>
+                  ))}
+                </ul>
+              )}
             </article>
           </div>
 
