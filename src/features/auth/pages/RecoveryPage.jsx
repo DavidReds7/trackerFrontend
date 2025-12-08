@@ -36,8 +36,8 @@ const RecoveryPage = () => {
       panelState={panelState}
     >
       <form className="auth-form" onSubmit={handleSubmit}>
-        <label>
-          Correo electrónico
+        <label className="auth-form__field">
+          <span>Correo electrónico</span>
           <input
             type="email"
             name="recoveryEmail"

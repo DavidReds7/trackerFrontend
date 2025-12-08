@@ -2,6 +2,7 @@ import React, { useCallback, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import AuthScene from '../components/AuthScene';
 import { useAuth } from '@/context/AuthContext';
+import { FiEye, FiEyeOff } from "react-icons/fi";
 
 const LoginPage = () => {
   const [form, setForm] = useState({ email: '', password: '' });
@@ -11,6 +12,7 @@ const LoginPage = () => {
   const { login, mockLogin, user } = useAuth();
   const { startPendingLogin } = useAuth();
   const circlePosition = 'right';
+  const [showPassword, setShowPassword] = useState(false);
 
   const handleChange = ({ target: { name, value } }) => {
     setForm((prev) => ({ ...prev, [name]: value }));
@@ -117,18 +119,27 @@ const LoginPage = () => {
         </label>
         <label className="auth-form__field">
           <span>
-            Contraseña
-            <strong aria-hidden="true">*</strong>
+            Contraseña <strong aria-hidden="true">*</strong>
           </span>
-          <input
-            type="password"
-            name="password"
-            value={form.password}
-            onChange={handleChange}
-            placeholder="********"
-            required
-            minLength={6}
-          />
+
+          <div className="input-with-icon">
+            <input
+              type={showPassword ? "text" : "password"}
+              name="password"
+              value={form.password}
+              onChange={handleChange}
+              placeholder="********"
+              required
+              minLength={6}
+            />
+
+            <span
+              className="password-icon"
+              onClick={() => setShowPassword((prev) => !prev)}
+            >
+              {showPassword ? <FiEyeOff /> : <FiEye />}
+            </span>
+          </div>
         </label>
         <button type="submit" disabled={loading}>
           {loading ? 'Verificando...' : 'Iniciar sesión'}

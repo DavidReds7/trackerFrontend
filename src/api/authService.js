@@ -29,6 +29,7 @@ export const login = async (credentials) => {
   return apiResp.data;
 };
 
+// Registro de nuevo usuario (CLIENTE)
 export const register = async (payload) => {
   const response = await fetch(`${BASE_URL}/auth/registro`, {
     method: 'POST',

@@ -165,7 +165,9 @@
 .confirm-modal .btn-primary {
   background: #3d7949;
   color: #fff;
+  border-radius: 9999px !important;
 }
+
 .confirm-modal .btn-add-user:hover,
 .confirm-modal .btn-primary:hover {
   background: #2d5a39;
@@ -175,6 +177,7 @@
   background: #e5e7eb;
   color: #111827;
 }
+
 .confirm-modal .btn-cancel:hover {
   background: #d1d5db;
 }
@@ -183,6 +186,7 @@
   background: #dc2626;
   color: #fff;
 }
+
 .confirm-modal .btn-danger:hover {
   background: #b91c1c;
 }
@@ -228,9 +232,9 @@
     opacity: 0;
     transform: translateX(12px);
   }
+
   to {
     opacity: 1;
     transform: translateX(0);
   }
 }
-

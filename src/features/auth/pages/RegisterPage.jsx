@@ -21,8 +21,19 @@ const RegisterPage = () => {
   const panelState = 'idle';
 
   const handleChange = ({ target: { name, value } }) => {
-    setForm((prev) => ({ ...prev, [name]: value }));
+    if (name === "location") {
+      setForm((prev) => ({
+        ...prev,
+        location: value,
+        ciudad: value,
+        ubicacion: value,
+        estado: "Morelos"
+      }));
+    } else {
+      setForm((prev) => ({ ...prev, [name]: value }));
+    }
   };
+
 
   const handleSubmit = async (event) => {
     event.preventDefault();
@@ -35,7 +46,9 @@ const RegisterPage = () => {
       nombre: form.firstName,
       apellidoPaterno: form.paternalLastName,
       apellidoMaterno: form.maternalLastName,
-      ubicacion: form.location
+      ciudad: form.location,
+      ubicacion: form.location,
+      estado: "Morelos"
     };
 
     try {
